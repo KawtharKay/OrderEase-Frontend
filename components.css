@@ -1,0 +1,264 @@
+/* ==========================================================================
+   OrderEase Components
+   ========================================================================== */
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-6);
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  transition: background var(--dur-fast) var(--ease-standard),
+              transform var(--dur-fast) var(--ease-standard),
+              border-color var(--dur-fast) var(--ease-standard);
+  white-space: nowrap;
+}
+.btn:active { transform: translateY(1px); }
+
+.btn-primary {
+  background: var(--color-primary);
+  color: var(--color-ink);
+}
+.btn-primary:hover { background: var(--color-primary-dark); color: var(--color-white); }
+
+.btn-dark {
+  background: var(--color-secondary);
+  color: var(--color-white);
+}
+.btn-dark:hover { background: var(--color-secondary-dark); }
+
+.btn-outline {
+  background: transparent;
+  border-color: var(--color-border);
+  color: var(--color-ink);
+}
+.btn-outline:hover { border-color: var(--color-ink); }
+
+.btn-danger { background: var(--color-danger); color: var(--color-white); }
+.btn-danger:hover { background: #C0392B; }
+
+.btn-sm { padding: var(--sp-2) var(--sp-4); font-size: var(--fs-xs); }
+.btn-block { width: 100%; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+/* ---------- Inputs ---------- */
+.field { margin-bottom: var(--sp-4); }
+.field label {
+  display: block;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--color-ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: var(--sp-2);
+}
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-white);
+  color: var(--color-ink);
+  transition: border-color var(--dur-fast) var(--ease-standard);
+}
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color: var(--color-primary);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-primary-tint);
+}
+.field-error {
+  color: var(--color-danger);
+  font-size: var(--fs-xs);
+  margin-top: var(--sp-1);
+}
+.field input.invalid { border-color: var(--color-danger); }
+
+/* ---------- Card ---------- */
+.card {
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--sp-5);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ---------- Badge ---------- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 2px var(--sp-3);
+  border-radius: 999px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.badge-success { background: var(--color-success-tint); color: var(--color-success); }
+.badge-danger { background: var(--color-danger-tint); color: var(--color-danger); }
+.badge-pending { background: var(--color-primary-tint); color: var(--color-primary-dark); }
+.badge-neutral { background: var(--color-bg-soft); color: var(--color-ink-soft); }
+
+/* ---------- Signature element: the Ticket ----------
+   Used for order summaries, wallet transactions, delivery receipts.
+   Perforated edge + punch-hole notch, referencing a physical receipt stub. */
+.ticket {
+  position: relative;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.ticket-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: var(--sp-5) var(--sp-5) var(--sp-4);
+}
+.ticket-head .ticket-id {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--color-ink-soft);
+  letter-spacing: 0.02em;
+}
+.ticket-perforation {
+  position: relative;
+  height: 0;
+  border-top: 2px dashed var(--color-border);
+  margin: 0 var(--sp-5);
+}
+/* punch-hole notches on either side of the perforation */
+.ticket-perforation::before,
+.ticket-perforation::after {
+  content: "";
+  position: absolute;
+  top: -8px;
+  width: 16px;
+  height: 16px;
+  background: var(--color-bg-soft);
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+}
+.ticket-perforation::before { left: -24px; }
+.ticket-perforation::after { right: -24px; }
+
+.ticket-body { padding: var(--sp-4) var(--sp-5); }
+.ticket-row {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--sp-2) 0;
+  font-size: var(--fs-sm);
+}
+.ticket-row .label { color: var(--color-ink-soft); }
+.ticket-row .value { font-family: var(--font-mono); font-weight: 600; }
+.ticket-total {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--sp-4) var(--sp-5);
+  background: var(--color-bg-soft);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: var(--fs-md);
+}
+.ticket-total .amount.credit { color: var(--color-success); }
+.ticket-total .amount.debit { color: var(--color-danger); }
+
+/* ---------- Nav ---------- */
+.navbar {
+  height: var(--nav-height);
+  display: flex;
+  align-items: center;
+  background: var(--color-white);
+  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+.navbar .container { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+.brand {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--fs-md);
+  display: flex;
+  align-items: center;
+}
+.brand .brand-dot { color: var(--color-primary); }
+.nav-links { display: flex; gap: var(--sp-6); align-items: center; }
+.nav-links a { font-size: var(--fs-sm); font-weight: 500; color: var(--color-ink-soft); transition: color var(--dur-fast); }
+.nav-links a:hover, .nav-links a.active { color: var(--color-ink); }
+.nav-toggle { display: none; background: none; border: none; }
+
+/* ---------- Toast ---------- */
+.toast-stack {
+  position: fixed;
+  top: var(--sp-5);
+  right: var(--sp-5);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.toast {
+  min-width: 260px;
+  max-width: 360px;
+  background: var(--color-ink);
+  color: var(--color-white);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-sm);
+  box-shadow: var(--shadow-lg);
+  animation: toast-in var(--dur-base) var(--ease-standard);
+  border-left: 3px solid var(--color-primary);
+}
+.toast.success { border-left-color: var(--color-success); }
+.toast.error { border-left-color: var(--color-danger); }
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- Empty state ---------- */
+.empty-state {
+  text-align: center;
+  padding: var(--sp-10) var(--sp-5);
+  color: var(--color-ink-soft);
+}
+.empty-state h3 { color: var(--color-ink); }
+
+/* ---------- Utility layout ---------- */
+.grid { display: grid; gap: var(--sp-5); }
+.grid-2 { grid-template-columns: repeat(2, 1fr); }
+.grid-3 { grid-template-columns: repeat(3, 1fr); }
+.flex { display: flex; align-items: center; }
+.gap-2 { gap: var(--sp-2); }
+.gap-4 { gap: var(--sp-4); }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 860px) {
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  .nav-links {
+    position: fixed;
+    top: var(--nav-height);
+    left: 0; right: 0;
+    background: var(--color-white);
+    border-bottom: 1px solid var(--color-border);
+    flex-direction: column;
+    align-items: flex-start;
+    padding: var(--sp-4) var(--sp-5);
+    gap: var(--sp-4);
+    display: none;
+  }
+  .nav-links.open { display: flex; }
+  .nav-toggle { display: block; }
+  .ticket-perforation::before, .ticket-perforation::after { display: none; }
+}

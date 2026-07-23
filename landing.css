@@ -1,0 +1,66 @@
+/* ==========================================================================
+   OrderEase — Public landing page
+   ========================================================================== */
+
+.landing-hero {
+  min-height: 100vh;
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)),
+    url('https://images.unsplash.com/photo-1499447155021-4907f71b9ef5?w=1920&q=85&auto=format&fit=crop');
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  flex-direction: column;
+}
+
+.landing-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-5) var(--sp-8);
+}
+.landing-nav .brand span { color: var(--color-white); }
+.landing-nav .brand .brand-ease { color: var(--color-primary); }
+.landing-nav-actions { display: flex; gap: var(--sp-3); align-items: center; }
+.landing-nav-actions a.btn-outline-light {
+  padding: var(--sp-2) var(--sp-5);
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--color-white);
+  color: var(--color-white);
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  text-decoration: none;
+  transition: background var(--dur-fast), color var(--dur-fast);
+}
+.landing-nav-actions a.btn-outline-light:hover { background: var(--color-white); color: var(--color-ink); }
+
+.landing-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--sp-8);
+  max-width: 760px;
+  margin: 0 auto;
+}
+.landing-content h1 {
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 5.5vw, 4.25rem);
+  font-weight: 700;
+  color: var(--color-white);
+  line-height: 1.08;
+  margin-bottom: var(--sp-8);
+}
+.landing-content p {
+  font-size: var(--fs-md);
+  color: #F0EBE3;
+  margin-bottom: var(--sp-6);
+}
+.landing-actions { display: flex; gap: var(--sp-4); flex-wrap: wrap; }
+
+@media (max-width: 640px) {
+  .landing-nav { padding: var(--sp-4); }
+  .landing-content { padding: var(--sp-5); }
+}

@@ -1,0 +1,77 @@
+/* ==========================================================================
+   OrderEase Design Tokens — warm, approachable, professional
+   ========================================================================== */
+
+:root {
+  /* --- Color --- */
+  --color-bg: #FDF8F2;
+  --color-bg-soft: #F5EEE3;
+  --color-ink: #2B2420;
+  --color-ink-soft: #7A6F63;
+  --color-primary: #F2A93B;
+  --color-primary-dark: #D98F1E;
+  --color-primary-tint: #FCEBCB;
+  --color-secondary: #2F5F8F;
+  --color-secondary-dark: #24486E;
+  --color-secondary-tint: #E7EEF4;
+  --color-success: #3FA66B;
+  --color-success-tint: #E7F5EC;
+  --color-danger: #E2574C;
+  --color-danger-tint: #FBEAE8;
+  --color-border: #E8E1D8;
+  --color-white: #FFFFFF;
+
+  /* --- Type --- */
+  --font-display: "Fraunces", "Georgia", serif;
+  --font-body: "Nunito", "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "Courier New", monospace;
+
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.875rem;
+  --fs-base: 1rem;
+  --fs-md: 1.125rem;
+  --fs-lg: 1.375rem;
+  --fs-xl: 1.75rem;
+  --fs-2xl: 2.25rem;
+  --fs-3xl: 3rem;
+
+  /* --- Spacing (4px base) --- */
+  --sp-1: 0.25rem;
+  --sp-2: 0.5rem;
+  --sp-3: 0.75rem;
+  --sp-4: 1rem;
+  --sp-5: 1.5rem;
+  --sp-6: 2rem;
+  --sp-8: 3rem;
+  --sp-10: 4rem;
+  --sp-12: 6rem;
+
+  /* --- Radius: generous, rounded, approachable --- */
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-pill: 999px;
+
+  /* --- Shadow: soft, warm-tinted --- */
+  --shadow-sm: 0 2px 6px rgba(43, 36, 32, 0.06);
+  --shadow-md: 0 8px 24px rgba(43, 36, 32, 0.08);
+  --shadow-lg: 0 16px 40px rgba(43, 36, 32, 0.12);
+
+  /* --- Motion --- */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+
+  /* --- Layout --- */
+  --container-max: 1200px;
+  --nav-height: 64px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verify your email · OrderEase</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="components.css">
+<link rel="stylesheet" href="auth.css">
+</head>
+<body class="auth-body">
+
+  <div class="auth-bg">
+    <div class="auth-card" style="text-align:center;">
+      <a href="index.html" class="auth-logo" style="display:block;">Order<span>Ease</span></a>
+
+      <h1>Verify your email</h1>
+      <p class="auth-subtitle">Enter the 6-digit code we sent to your email address.</p>
+
+      <div class="form-error" id="form-error"></div>
+
+      <form id="verify-form" novalidate>
+        <div class="form-group">
+          <label for="emailInput">Email address</label>
+          <input type="email" id="emailInput" class="form-input" placeholder="Enter your email" autocomplete="email">
+          <div class="field-error" id="email-error"></div>
+        </div>
+
+        <div class="form-group">
+          <label for="codeInput">Verification code</label>
+          <input type="text" id="codeInput" class="form-input" placeholder="6-digit code" inputmode="numeric" maxlength="6" style="text-align:center; letter-spacing:6px; font-size:1.2rem;">
+          <div class="field-error" id="code-error"></div>
+        </div>
+
+        <button type="submit" class="btn-submit" id="verify-btn">
+          <span id="btn-text">Verify email</span>
+          <span class="spinner" id="btn-spinner"></span>
+        </button>
+      </form>
+
+      <p class="auth-switch" style="margin-top: var(--sp-5);">
+        Didn't get a code? <a href="#" id="resendLink">Resend code</a>
+      </p>
+    </div>
+  </div>
+
+  <div class="toast-stack"></div>
+
+  <script src="api.js"></script>
+  <script src="ui.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const params = new URLSearchParams(window.location.search);
+      const prefillEmail = params.get("email");
+      if (prefillEmail) document.getElementById("emailInput").value = prefillEmail;
+
+      document.getElementById("verify-form").addEventListener("submit", handleVerify);
+      document.getElementById("resendLink").addEventListener("click", handleResend);
+    });
+
+    async function handleVerify(e) {
+      e.preventDefault();
+      const banner = document.getElementById("form-error");
+      banner.textContent = ""; banner.classList.remove("show");
+      document.querySelectorAll(".field-error").forEach(el => el.textContent = "");
+
+      const email = document.getElementById("emailInput").value.trim();
+      const code = document.getElementById("codeInput").value.trim();
+      const btn = document.getElementById("verify-btn");
+
+      let hasError = false;
+      if (!email) { document.getElementById("email-error").textContent = "Email is required."; hasError = true; }
+      if (!code || code.length !== 6) { document.getElementById("code-error").textContent = "Enter the 6-digit code."; hasError = true; }
+      if (hasError) return;
+
+      setSubmitLoading(btn, true);
+
+      try {
+        const result = await Api.post("/Auth/verify-email", { email, code }, { auth: false });
+        showToast(result.message || "Email verified!", "success");
+        setTimeout(() => { window.location.href = "login.html"; }, 1000);
+      } catch (err) {
+        banner.textContent = err.message;
+        banner.classList.add("show");
+      } finally {
+        setSubmitLoading(btn, false);
+      }
+    }
+
+    async function handleResend(e) {
+      e.preventDefault();
+      const email = document.getElementById("emailInput").value.trim();
+      if (!email) {
+        document.getElementById("email-error").textContent = "Enter your email first.";
+        return;
+      }
+
+      try {
+        const result = await Api.post("/Auth/resend-verification", { email }, { auth: false });
+        showToast(result.message || "A new code has been sent.", "success");
+      } catch (err) {
+        showToast(err.message, "error");
+      }
+    }
+
+    function setSubmitLoading(button, isLoading) {
+      const text = button.querySelector("#btn-text");
+      const spinner = button.querySelector("#btn-spinner");
+      button.disabled = isLoading;
+      if (spinner) spinner.classList.toggle("show", isLoading);
+      if (text) text.style.opacity = isLoading ? "0.7" : "1";
+    }
+  </script>
+</body>
+</html>
