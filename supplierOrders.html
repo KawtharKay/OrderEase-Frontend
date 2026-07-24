@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Orders · OrderEase Supplier</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Nunito:wght@400;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="components.css">
+<link rel="stylesheet" href="notification.css">
+<link rel="stylesheet" href="dashboard.css">
+<link rel="stylesheet" href="order.css">
+<link rel="stylesheet" href="supplier.css">
+<link rel="stylesheet" href="supplier-ops.css">
+</head>
+<body class="dash-body">
+
+  <nav class="navbar">
+    <div class="container">
+      <div class="brand"><span class="brand-order">Order</span><span class="brand-ease">Ease</span></div>
+      <div class="nav-links">
+        <a href="supplierDashboard.html">Inventory</a>
+        <a href="supplierOrders.html" class="active">Orders</a>
+        <a href="supplierReturns.html">Returns</a>
+        <a href="supplierBalances.html">Balances</a>
+        <a href="#" id="logoutLink">Log out</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="dash-header">
+      <h1>Orders</h1>
+      <p>Update fulfillment status and delivery method for every order.</p>
+    </div>
+
+    <div class="panel">
+      <div class="filter-bar" style="margin-bottom: var(--sp-4);">
+        <input type="text" class="search-input" id="orderSearchInput" placeholder="Search by order number, customer, or status...">
+      </div>
+
+      <div id="ordersList"><!-- order rows render here --></div>
+      <div id="emptyState" class="empty-state" style="display:none;">
+        <h3>No orders yet</h3>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-stack"></div>
+
+  <script src="api.js"></script>
+  <script src="ui.js"></script>
+  <script src="supplierOrders.js"></script>
+  <script src="notification.js"></script>
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catalogue · OrderEase</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Nunito:wght@400;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="components.css">
+<link rel="stylesheet" href="notification.css">
+<link rel="stylesheet" href="dashboard.css">
+</head>
+<body class="dash-body">
+
+  <nav class="navbar">
+    <div class="container">
+      <div class="brand"><span class="brand-order">Order</span><span class="brand-ease">Ease</span></div>
+
+      <button class="nav-toggle" aria-label="Toggle menu">☰</button>
+
+      <div class="nav-links" id="navLinks">
+        <a href="catalogue.html" class="active">Catalogue</a>
+        <!-- Signed-in-only and guest-only links are injected by catalogue.js -->
+      </div>
+
+      <button class="nav-cart-btn" id="cartToggleBtn" aria-label="Open cart">
+        🛒
+        <span class="cart-count" id="cartCount" style="display:none;">0</span>
+      </button>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="dash-header">
+      <h1 id="greeting">Browse the catalogue</h1>
+      <p>Browse textbooks and school supplies, and add what you need to your order.</p>
+    </div>
+
+    <div class="filter-bar">
+      <input type="text" class="search-input" id="searchInput" placeholder="Search books and supplies...">
+      <div class="flex gap-2" id="categoryChips">
+        <button class="category-chip active" data-category="all">All</button>
+      </div>
+    </div>
+
+    <div id="itemGrid" class="item-grid">
+      <!-- item cards render here -->
+    </div>
+
+    <div id="emptyState" class="empty-state" style="display:none;">
+      <h3>No items found</h3>
+      <p>Try a different search term or category.</p>
+    </div>
+  </div>
+
+  <!-- Cart drawer -->
+  <div class="cart-overlay" id="cartOverlay"></div>
+  <div class="cart-drawer" id="cartDrawer">
+    <div class="cart-drawer-head">
+      <h2>Your order</h2>
+      <button class="cart-close-btn" id="cartCloseBtn">&times;</button>
+    </div>
+    <div class="cart-drawer-body" id="cartBody">
+      <div class="empty-state" id="cartEmptyState">
+        <h3>Your cart is empty</h3>
+        <p>Add items from the catalogue to get started.</p>
+      </div>
+    </div>
+    <div class="cart-drawer-foot">
+      <div class="cart-total-row">
+        <span>Total</span>
+        <span id="cartTotal">₦0.00</span>
+      </div>
+      <button class="btn btn-primary btn-block" id="checkoutBtn" disabled>Proceed to checkout</button>
+    </div>
+  </div>
+
+  <div class="toast-stack"></div>
+
+  <script src="api.js"></script>
+  <script src="ui.js"></script>
+  <script src="catalogue.js"></script>
+  <script src="notification.js"></script>
+</body>
+</html>

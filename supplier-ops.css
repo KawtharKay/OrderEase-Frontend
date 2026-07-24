@@ -1,0 +1,79 @@
+/* ==========================================================================
+   Supplier — orders fulfillment, return approvals, customer balances
+   ========================================================================== */
+
+.sup-order-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-4) 0;
+  border-bottom: 1px solid var(--color-border);
+  flex-wrap: wrap;
+}
+.sup-order-row:last-child { border-bottom: none; }
+.sup-order-main { flex: 1; min-width: 180px; }
+.sup-order-main .num { font-weight: 700; font-size: var(--fs-sm); }
+.sup-order-main .cust { font-size: var(--fs-xs); color: var(--color-ink-soft); }
+.sup-order-total { font-family: var(--font-mono); font-weight: 700; white-space: nowrap; }
+
+.status-select, .delivery-select {
+  height: 38px;
+  padding: 0 var(--sp-3);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  background: var(--color-white);
+  cursor: pointer;
+}
+.status-select:focus, .delivery-select:focus { border-color: var(--color-secondary); }
+
+.sup-order-toggle { background: none; border: none; cursor: pointer; color: var(--color-ink-soft); font-size: var(--fs-md); }
+
+.sup-order-detail {
+  display: none;
+  width: 100%;
+  padding: var(--sp-3) 0 0;
+  font-size: var(--fs-sm);
+}
+.sup-order-detail.open { display: block; }
+.sup-order-detail .delivery-row { display: flex; align-items: center; gap: var(--sp-3); }
+.sup-order-detail label { font-weight: 600; color: var(--color-ink-soft); font-size: var(--fs-xs); text-transform: uppercase; }
+
+/* ---------- Returns ---------- */
+.sup-return-row {
+  padding: var(--sp-4) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.sup-return-row:last-child { border-bottom: none; }
+.sup-return-head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--sp-3); flex-wrap: wrap; }
+.sup-return-head .info .cust { font-weight: 700; font-size: var(--fs-sm); }
+.sup-return-head .info .meta { font-size: var(--fs-xs); color: var(--color-ink-soft); }
+.sup-return-reason { font-size: var(--fs-sm); margin: var(--sp-2) 0; color: var(--color-ink); }
+.sup-return-actions { display: flex; gap: var(--sp-2); margin-top: var(--sp-3); }
+
+/* ---------- Balances table ---------- */
+.balance-table { width: 100%; border-collapse: collapse; }
+.balance-table th {
+  text-align: left;
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-ink-soft);
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 2px solid var(--color-border);
+}
+.balance-table td {
+  padding: var(--sp-3);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--fs-sm);
+}
+.balance-table .mono-cell { font-family: var(--font-mono); }
+.balance-table .outstanding { color: var(--color-danger); font-weight: 700; }
+.balance-table .cleared { color: var(--color-success); font-weight: 700; }
+
+/* ---------- Balances — expandable per-customer order history ---------- */
+.balance-row { cursor: pointer; }
+.balance-row:hover { background: var(--color-bg-soft); }
+.balance-detail-row td { padding: 0; border-bottom: 1px solid var(--color-border); }
+.balance-detail { padding: var(--sp-3) var(--sp-4); background: var(--color-bg-soft); }
