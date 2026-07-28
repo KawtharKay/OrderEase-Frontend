@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Return Requests · OrderEase</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Nunito:wght@400;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="components.css">
+<link rel="stylesheet" href="notification.css">
+<link rel="stylesheet" href="dashboard.css">
+<link rel="stylesheet" href="order.css">
+<link rel="stylesheet" href="returnRequest.css">
+</head>
+<body class="dash-body">
+
+  <nav class="navbar">
+    <div class="container">
+      <div class="brand"><span class="brand-order">Order</span><span class="brand-ease">Ease</span></div>
+      <div class="nav-links">
+        <a href="catalogue.html">Catalogue</a>
+        <a href="myOrders.html">My Orders</a>
+        <a href="wallet.html">Wallet</a>
+        <a href="returnRequest.html" class="active">Returns</a>
+        <a href="#" id="logoutLink">Log out</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="dash-header flex" style="justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: var(--sp-3);">
+      <div>
+        <h1>Return Requests</h1>
+        <p>Request a return on a past order, and track how it's going.</p>
+      </div>
+      <button class="btn btn-primary" id="newReturnBtn">Request a return</button>
+    </div>
+
+    <div class="filter-bar" style="margin-bottom: var(--sp-5);">
+      <input type="text" class="search-input" id="returnSearchInput" placeholder="Search by order, reason, or status...">
+    </div>
+
+    <div id="returnsList"><!-- return request cards render here --></div>
+
+    <div id="emptyState" class="empty-state" style="display:none;">
+      <h3>No return requests yet</h3>
+      <p>If something's wrong with an order, you can request a return here.</p>
+    </div>
+  </div>
+
+  <!-- Create return modal -->
+  <div class="modal-overlay" id="returnModal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h2>Request a return</h2>
+        <button class="modal-close-btn" id="modalCloseBtn">&times;</button>
+      </div>
+
+      <form id="returnForm">
+        <div class="field">
+          <label for="orderSelect">Which order?</label>
+          <select id="orderSelect" required>
+            <option value="">Select an order...</option>
+          </select>
+        </div>
+
+        <div id="returnItemsSection" style="display:none;">
+          <label style="display:block; font-weight:700; font-size:var(--fs-xs); text-transform:uppercase; letter-spacing:0.04em; color:var(--color-ink-soft); margin-bottom:var(--sp-2);">
+            Select items to return
+          </label>
+          <div id="returnItemsList"><!-- item rows render here --></div>
+          <div class="category-warning" id="categoryWarning">
+            You can only return items from one category per request. Please select items from a single category, or submit separate requests.
+          </div>
+        </div>
+
+        <div class="field" style="margin-top: var(--sp-4);">
+          <label for="reasonInput">Reason for return</label>
+          <textarea id="reasonInput" rows="3" maxlength="1000" placeholder="Tell us what went wrong..." required
+            style="width:100%; padding: var(--sp-3) var(--sp-4); border:1.5px solid var(--color-border); border-radius:var(--radius-sm); font-family:var(--font-body); resize:vertical;"></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block" id="submitReturnBtn" style="margin-top: var(--sp-4);">Submit return request</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast-stack"></div>
+
+  <script src="api.js"></script>
+  <script src="ui.js"></script>
+  <script src="returnRequest.js"></script>
+  <script src="notification.js"></script>
+</body>
+</html>

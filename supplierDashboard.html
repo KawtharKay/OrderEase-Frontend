@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inventory · OrderEase Supplier</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Nunito:wght@400;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="components.css">
+<link rel="stylesheet" href="notification.css">
+<link rel="stylesheet" href="dashboard.css">
+<link rel="stylesheet" href="supplier.css">
+</head>
+<body class="dash-body">
+
+  <nav class="navbar">
+    <div class="container">
+      <div class="brand"><span class="brand-order">Order</span><span class="brand-ease">Ease</span></div>
+      <div class="nav-links">
+        <a href="supplierDashboard.html" class="active">Inventory</a>
+        <a href="supplierOrders.html">Orders</a>
+        <a href="supplierReturns.html">Returns</a>
+        <a href="supplierBalances.html">Balances</a>
+        <a href="#" id="logoutLink">Log out</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="dash-header flex" style="justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: var(--sp-3);">
+      <div>
+        <h1>Inventory</h1>
+        <p>Manage what's in your catalogue and how much is in stock.</p>
+      </div>
+      <button class="btn btn-primary" id="newItemBtn">Add item</button>
+    </div>
+
+    <div class="supplier-layout">
+      <div class="panel">
+        <div class="panel-head"><h2>Items</h2></div>
+        <div class="filter-bar" style="margin-bottom: var(--sp-4);">
+          <input type="text" class="search-input" id="itemSearchInput" placeholder="Search items by title or category...">
+        </div>
+        <div id="itemsList"><!-- item rows render here --></div>
+        <div id="itemsEmpty" class="empty-state" style="display:none;">
+          <h3>No items yet</h3>
+          <p>Add your first item to start selling.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h2>Categories</h2></div>
+        <div class="filter-bar" style="margin-bottom: var(--sp-3);">
+          <input type="text" class="search-input" id="categorySearchInput" placeholder="Search categories...">
+        </div>
+        <div id="categoriesList"><!-- category rows render here --></div>
+        <form class="add-category-form" id="addCategoryForm">
+          <input type="text" id="newCategoryInput" placeholder="New category name" maxlength="100" required>
+          <button type="submit" class="btn btn-primary btn-sm">Add</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create/edit item modal -->
+  <div class="sup-modal-overlay" id="itemModal">
+    <div class="sup-modal-box">
+      <div class="sup-modal-head">
+        <h2 id="itemModalTitle">Add item</h2>
+        <button class="sup-modal-close" id="itemModalCloseBtn">&times;</button>
+      </div>
+
+      <form id="itemForm">
+        <input type="hidden" id="itemId">
+
+        <div class="image-preview" id="imagePreview">No image selected</div>
+        <div class="field">
+          <label for="imageInput">Item photo</label>
+          <input type="file" id="imageInput" accept="image/*">
+        </div>
+
+        <div class="field">
+          <label for="categorySelect">Category</label>
+          <select id="categorySelect" required></select>
+        </div>
+
+        <div class="field">
+          <label for="titleInput">Title</label>
+          <input type="text" id="titleInput" maxlength="100" required>
+        </div>
+
+        <div class="field">
+          <label for="priceInput">Price (₦)</label>
+          <input type="number" id="priceInput" min="1" step="0.01" required>
+        </div>
+
+        <div class="field">
+          <label for="quantityInput">Quantity in stock</label>
+          <input type="number" id="quantityInput" min="0" step="1" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block" id="itemSubmitBtn">Save item</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast-stack"></div>
+
+  <script src="api.js"></script>
+  <script src="ui.js"></script>
+  <script src="supplierInventory.js"></script>
+  <script src="notification.js"></script>
+</body>
+</html>
