@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checkout · OrderEase</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Nunito:wght@400;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="components.css">
+<link rel="stylesheet" href="notification.css">
+<link rel="stylesheet" href="dashboard.css">
+<link rel="stylesheet" href="checkout.css">
+</head>
+<body class="dash-body">
+
+  <nav class="n
+    <div class="container">
+      <div class="brand"><span class="brand-order">Order</span><span class="brand-ease">Ease</span></div>
+      <div class="nav-links">
+        <a href="catalogue.html">Catalogue</a>
+        <a href="myOrders.html">My Orders</a>
+        <a href="wallet.html">Wallet</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="dash-header">
+      <h1>Checkout</h1>
+      <p>Review your order, choose a delivery method, and confirm.</p>
+    </div>
+
+    <div id="checkoutContent">
+
+      <div class="checkout-layout">
+        <div>
+          <div class="checkout-section">
+            <h2>Your items</h2>
+            <div id="orderLines"><!-- line items render here --></div>
+          </div>
+
+          <div class="checkout-section">
+            <h2>Delivery method</h2>
+            <div class="delivery-options" id="deliveryOptions">
+              <label class="delivery-option" data-method="1">
+                <input type="radio" name="deliveryMethod" value="1" checked>
+                <span class="icon">🏍️</span>
+                <span>
+                  <div class="label">Dispatch Rider</div>
+                  <div class="desc">Delivered straight to your address</div>
+                </span>
+              </label>
+              <label class="delivery-option" data-method="2">
+                <input type="radio" name="deliveryMethod" value="2">
+                <span class="icon">🚌</span>
+                <span>
+                  <div class="label">Motor Park</div>
+                  <div class="desc">Pick up from an agreed motor park</div>
+                </span>
+              </label>
+              <label class="delivery-option" data-method="3">
+                <input type="radio" name="deliveryMethod" value="3">
+                <span class="icon">🏬</span>
+                <span>
+                  <div class="label">Customer Pickup</div>
+                  <div class="desc">Pick up directly from the store</div>
+                </span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="checkout-section summary-panel">
+          <h2>Order summary</h2>
+          <div class="summary-row"><span>Subtotal</span><span class="value" id="summarySubtotal">₦0.00</span></div>
+          <div class="summary-row"><span>Wallet balance</span><span class="value" id="summaryWallet">₦0.00</span></div>
+          <div class="summary-total"><span>Total</span><span id="summaryTotal">₦0.00</span></div>
+          <div class="summary-note" id="walletNote" style="display:none;"></div>
+          <button class="btn btn-primary btn-block" id="placeOrderBtn" style="margin-top: var(--sp-5);">Place order</button>
+        </div>
+      </div>
+
+    </div>
+
+    <div id="checkoutEmpty" class="checkout-empty empty-state" style="display:none;">
+      <h3>Your cart is empty</h3>
+      <p>Add items from the catalogue before checking out.</p>
+      <a href="catalogue.html" class="btn btn-primary" style="margin-top: var(--sp-4);">Browse catalogue</a>
+    </div>
+  </div>
+
+  <div class="toast-stack"></div>
+
+  <script src="api.js"></script>
+  <script src="ui.js"></script>
+  <script src="checkout.js"></script>
+  <script src="notification.js"></script>
+</body>
+</html>
