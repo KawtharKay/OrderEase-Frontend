@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notifications · OrderEase</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="components.css">
+<link rel="stylesheet" href="dashboard.css">
+<link rel="stylesheet" href="notification.css">
+</head>
+<body class="dash-body">
+
+  <nav class="navbar">
+    <div class="container">
+      <div class="brand"><span class="brand-order">Order</span><span class="brand-ease">Ease</span></div>
+      <div class="nav-links" id="navLinks"></div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="dash-header flex" style="justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: var(--sp-3);">
+      <div>
+        <h1>Notifications</h1>
+        <p>Everything that's happened on your account.</p>
+      </div>
+      <button class="btn btn-outline" id="markAllBtn">Mark all read</button>
+    </div>
+
+    <div class="panel">
+      <div id="notifList"><p style="color:var(--color-ink-soft);">Loading...</p></div>
+      <div id="emptyState" class="empty-state" style="display:none;">
+        <h3>No notifications yet</h3>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-stack"></div>
+
+  <script src="api.js"></script>
+  <script src="ui.js"></script>
+  <script>
+    let allNotifications = [];
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      const user = requireAuth();
+      if (!user) return;
+
+      buildNav(user);
+      document.getElementById("markAllBtn").addEventListener("click", markAllRead);
+      await loadNotifications();
+    });
+
+    function buildNav(user) {
+      const isSupplier = (user.roles || []).includes("app_supplier");
+      const nav = document.getElementById("navLinks");
+
+      nav.innerHTML = isSupplier
+        ? `<a href="supplierDashboard.html">Inventory</a>
+           <a href="supplierOrders.html">Orders</a>
+           <a href="supplierReturns.html">Returns</a>
+           <a href="supplierBalances.html">Balances</a>
+           <a href="notifications.html" class="active">Notifications</a>
+           <a href="#" id="logoutLink">Log out</a>`
+        : `<a href="catalogue.html">Catalogue</a>
+           <a href="myOrders.html">My Orders</a>
+           <a href="wallet.html">Wallet</a>
+           <a href="returnRequest.html">Returns</a>
+           <a href="notifications.html" class="active">Notifications</a>
+           <a href="#" id="logoutLink">Log out</a>`;
+
+      document.getElementById("logoutLink").addEventListener("click", (e) => {
+        e.preventDefault();
+        TokenStore.clear();
+        window.location.href = "login.html";
+      });
+    }
+
+    async function loadNotifications() {
+      const list = document.getElementById("notifList");
+      const emptyState = document.getElementById("emptyState");
+
+      try {
+        const result = await Api.get("/Notification/mine");
+        allNotifications = result?.data?.notifications || [];
+
+        if (allNotifications.length === 0) {
+          list.innerHTML = "";
+          emptyState.style.display = "block";
+          return;
+        }
+
+        list.innerHTML = allNotifications.map((n, i) => `
+          <div class="order-detail-line" style="cursor:pointer; ${n.isRead ? "" : "background:var(--color-secondary-tint);"}" data-index="${i}">
+            <div>
+              <div class="item-name">${n.title}</div>
+              <div class="item-qty">${n.message}</div>
+              <div class="item-qty" style="margin-top:4px;">${formatDate(n.dateCreated)}</div>
+            </div>
+          </div>
+        `).join("");
+
+        list.querySelectorAll("[data-index]").forEach(el => {
+          el.addEventListener("click", () => goToNotification(allNotifications[el.dataset.index]));
+        });
+      } catch (err) {
+        showToast(err.message, "error");
+      }
+    }
+
+    function goToNotification(notification) {
+      const type = notification.notificationType;
+      const isSupplier = (TokenStore.getUser().roles || []).includes("app_supplier");
+
+      if (["NewOrder", "OrderStatusChanged"].includes(type)) {
+        window.location.href = isSupplier ? "supplierOrders.html" : "myOrders.html";
+      } else if (["ReturnRequested", "ReturnApproved", "ReturnRejected"].includes(type)) {
+        window.location.href = isSupplier ? "supplierReturns.html" : "returnRequest.html";
+      } else if (["PaymentConfirmed", "WalletFunded"].includes(type)) {
+        window.location.href = "wallet.html";
+      }
+    }
+
+    async function markAllRead() {
+      try {
+        await Api.patch("/Notification/mark-read");
+        showToast("All notifications marked read.", "success");
+        await loadNotifications();
+      } catch (err) {
+        showToast(err.message, "error");
+      }
+    }
+  </script>
+</body>
+</html>

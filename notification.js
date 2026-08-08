@@ -1,5 +1,5 @@
 /* ==========================================================================
-   OrderEase — Shared Notification Bell (SignalR live push + REST fallback)
+   OrderEase - Shared Notification Bell (SignalR live push + REST fallback)
    Include on every authenticated page, loaded after api.js, ui.js, and the
    page's own script. Silently does nothing if the visitor isn't logged in.
    ========================================================================== */
@@ -21,22 +21,12 @@ function injectBell() {
   const navLinks = document.getElementById("navLinks") || document.querySelector(".nav-links");
   if (!navLinks) return;
 
-  const wrap = document.createElement("span");
-  wrap.className = "notif-bell-wrap";
-  wrap.innerHTML = `
-    <button class="notif-bell-btn" id="notifBellBtn" aria-label="Notifications">
-      🔔
-      <span class="notif-badge" id="notifBadge">0</span>
-    </button>
-    <div class="notif-dropdown" id="notifDropdown">
-      <div class="notif-dropdown-head">
-        <span>Notifications</span>
-        <button class="notif-mark-read-btn" id="notifMarkReadBtn">Mark all read</button>
-      </div>
-      <div id="notifList"><div class="notif-empty">Loading...</div></div>
-    </div>
-  `;
-  navLinks.appendChild(wrap);
+  const link = document.createElement("a");
+  link.href = "notifications.html";
+  link.id = "notifBellLink";
+  link.innerHTML = `Notifications <span class="notif-badge" id="notifBadge"></span>`;
+  navLinks.appendChild(link);
+}
 
   document.getElementById("notifBellBtn").addEventListener("click", (e) => {
     e.stopPropagation();
@@ -46,7 +36,7 @@ function injectBell() {
     if (!wrap.contains(e.target)) document.getElementById("notifDropdown").classList.remove("open");
   });
   document.getElementById("notifMarkReadBtn").addEventListener("click", markAllRead);
-}
+
 
 async function loadNotifications() {
   try {
@@ -56,7 +46,6 @@ async function loadNotifications() {
     renderBadge();
     renderList();
   } catch {
-    // notifications are supplementary — fail quietly rather than blocking the page
   }
 }
 
@@ -154,6 +143,5 @@ async function connectSignalR(userId) {
     await signalRConnection.start();
     await signalRConnection.invoke("JoinUserGroup", userId);
   } catch {
-    // live push is a bonus on top of the REST-fetched badge on page load
   }
 }

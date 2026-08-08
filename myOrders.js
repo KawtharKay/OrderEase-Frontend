@@ -5,6 +5,7 @@
 const orderDetailCache = {};
 let allOrders = [];
 let orderSearchTerm = "";
+let walletBalance = 0;
 
 document.addEventListener("DOMContentLoaded", async () => {
   const user = requireAuth("app_customer");
@@ -16,8 +17,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderOrders();
   });
 
-  await loadOrders();
+  await Promise.all([loadOrders(), loadWalletBalance()]);
 });
+
+async function loadWalletBalance() {
+  try {
+    const result = await Api.get("/Wallet/balance");
+    walletBalance = result?.data?.balance || 0;
+  } catch {
+    walletBalance = 0;
+  }
+}
 
 async function loadOrders() {
   const list = document.getElementById("ordersList");
@@ -94,13 +104,18 @@ async function toggleOrder(orderId) {
   head.classList.toggle("expanded", isOpen);
 
   if (isOpen && !orderDetailCache[orderId]) {
-    try {
-      const result = await Api.get(`/Orders/${orderId}`);
-      orderDetailCache[orderId] = result.data;
-      renderOrderDetail(orderId, result.data);
-    } catch (err) {
-      detail.innerHTML = `<p style="color:var(--color-danger); font-size:var(--fs-sm);">Couldn't load items: ${err.message}</p>`;
-    }
+    await fetchAndRenderOrderDetail(orderId);
+  }
+}
+
+async function fetchAndRenderOrderDetail(orderId) {
+  const detail = document.getElementById(`detail-${orderId}`);
+  try {
+    const result = await Api.get(`/Orders/${orderId}`);
+    orderDetailCache[orderId] = result.data;
+    renderOrderDetail(orderId, result.data);
+  } catch (err) {
+    detail.innerHTML = `<p style="color:var(--color-danger); font-size:var(--fs-sm);">Couldn't load items: ${err.message}</p>`;
   }
 }
 
@@ -118,7 +133,11 @@ function renderOrderDetail(orderId, order) {
   `).join("");
 
   const payButton = order.outstandingBalance > 0
-    ? `<button class="btn btn-primary btn-block" style="margin-top: var(--sp-3);" onclick="payOutstandingBalance('${orderId}')">Pay ${formatNaira(order.outstandingBalance)} now</button>`
+    ? `<button class="btn btn-primary btn-block" style="margin-top: var(--sp-3);" onclick="payNow('${orderId}')">Pay ${formatNaira(order.outstandingBalance)}</button>`
+    : "";
+
+  const cancelButton = (order.orderStatus !== "Delivered" && order.orderStatus !== "Cancelled")
+    ? `<button class="btn btn-outline btn-block" style="margin-top: var(--sp-2);" onclick="cancelOrder('${orderId}')">Cancel order</button>`
     : "";
 
   const summary = `
@@ -128,16 +147,64 @@ function renderOrderDetail(orderId, order) {
       <div class="order-payment-row"><span>Total paid</span><span class="mono paid">${formatNaira(order.totalPaid)}</span></div>
       <div class="order-payment-row total"><span>Outstanding balance</span><span class="mono ${order.outstandingBalance > 0 ? "owed" : "cleared"}">${order.outstandingBalance > 0 ? formatNaira(order.outstandingBalance) : "Cleared"}</span></div>
       ${payButton}
+      ${cancelButton}
     </div>
   `;
 
   detail.innerHTML = itemLines + summary;
 }
 
-async function payOutstandingBalance(orderId) {
+async function payNow(orderId) {
   try {
-    const result = await Api.post("/Payments/initiate", { orderId });
+    if (walletBalance > 0) {
+      try {
+        const walletResult = await Api.post(`/Orders/${orderId}/pay-with-wallet`, {});
+        showToast(walletResult.message, "success");
+      } catch {
+      }
+    }
+
+    delete orderDetailCache[orderId];
+    const refreshed = await Api.get(`/Orders/${orderId}`);
+    orderDetailCache[orderId] = refreshed.data;
+    const remaining = refreshed.data.outstandingBalance;
+
+    await loadWalletBalance();
+
+    if (remaining <= 0) {
+      renderOrderDetail(orderId, refreshed.data);
+      showToast("Order fully paid.", "success");
+      return;
+    }
+
+    const input = prompt(`How much would you like to pay now via Paystack? (up to ₦${remaining.toFixed(2)})`, remaining.toFixed(2));
+    if (!input) {
+      renderOrderDetail(orderId, refreshed.data);
+      return;
+    }
+
+    const amount = Number(input);
+    if (!amount || amount <= 0 || amount > remaining) {
+      showToast(`Enter an amount between ₦0 and ₦${remaining.toFixed(2)}`, "error");
+      renderOrderDetail(orderId, refreshed.data);
+      return;
+    }
+
+    const result = await Api.post("/Payments/initiate", { orderId, amount });
     window.location.href = result.data.authorizationUrl;
+  } catch (err) {
+    showToast(err.message, "error");
+  }
+}
+
+async function cancelOrder(orderId) {
+  if (!confirm("Cancel this order? Any amount already paid will be refunded to your wallet. This can't be undone.")) return;
+
+  try {
+    const result = await Api.post(`/Orders/${orderId}/cancel`, {});
+    showToast(result.message, "success");
+    delete orderDetailCache[orderId];
+    await Promise.all([loadOrders(), loadWalletBalance()]);
   } catch (err) {
     showToast(err.message, "error");
   }
