@@ -11,6 +11,26 @@
 <link rel="stylesheet" href="components.css">
 <link rel="stylesheet" href="dashboard.css">
 <link rel="stylesheet" href="notification.css">
+<style>
+  .notif-page-card {
+    background: var(--color-white);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--sp-4) var(--sp-5);
+    margin-bottom: var(--sp-3);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--sp-4);
+    cursor: pointer;
+    transition: border-color var(--dur-fast), background var(--dur-fast);
+  }
+  .notif-page-card:hover { border-color: var(--color-secondary); }
+  .notif-page-card.unread { border-color: var(--color-secondary); background: var(--color-secondary-tint); }
+  .notif-page-card .title { font-family: var(--font-display); font-weight: 700; font-size: var(--fs-md); color: var(--color-ink); margin-bottom: var(--sp-1); }
+  .notif-page-card .message { font-size: var(--fs-sm); color: var(--color-ink-soft); }
+  .notif-page-card .time { font-size: var(--fs-xs); color: var(--color-ink-soft); white-space: nowrap; padding-top: 2px; }
+</style>
 </head>
 <body class="dash-body">
 
@@ -27,14 +47,12 @@
         <h1>Notifications</h1>
         <p>Everything that's happened on your account.</p>
       </div>
-      <button class="btn btn-outline" id="markAllBtn">Mark all read</button>
+      <button class="btn btn-outline" id="markAllBtn">Mark all as read</button>
     </div>
 
-    <div class="panel">
-      <div id="notifList"><p style="color:var(--color-ink-soft);">Loading...</p></div>
-      <div id="emptyState" class="empty-state" style="display:none;">
-        <h3>No notifications yet</h3>
-      </div>
+    <div id="notifList"><p style="color:var(--color-ink-soft);">Loading...</p></div>
+    <div id="emptyState" class="empty-state" style="display:none;">
+      <h3>No notifications yet</h3>
     </div>
   </div>
 
@@ -94,12 +112,12 @@
         }
 
         list.innerHTML = allNotifications.map((n, i) => `
-          <div class="order-detail-line" style="cursor:pointer; ${n.isRead ? "" : "background:var(--color-secondary-tint);"}" data-index="${i}">
+          <div class="notif-page-card ${n.isRead ? "" : "unread"}" data-index="${i}">
             <div>
-              <div class="item-name">${n.title}</div>
-              <div class="item-qty">${n.message}</div>
-              <div class="item-qty" style="margin-top:4px;">${formatDate(n.dateCreated)}</div>
+              <div class="title">${n.title}</div>
+              <div class="message">${n.message}</div>
             </div>
+            <div class="time">${formatDate(n.dateCreated)}</div>
           </div>
         `).join("");
 

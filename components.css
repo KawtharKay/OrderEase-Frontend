@@ -33,7 +33,7 @@
 .btn-dark:hover { background: var(--color-secondary-dark); }
 
 .btn-outline {
-  background: transparent;
+  background: var(--color-primary);
   border-color: var(--color-border);
   color: var(--color-ink);
 }

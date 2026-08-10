@@ -52,7 +52,6 @@ async function loadNotifications() {
 function renderBadge() {
   const badge = document.getElementById("notifBadge");
   if (!badge) return;
-  badge.textContent = notifState.unreadCount > 9 ? "9+" : notifState.unreadCount;
   badge.classList.toggle("show", notifState.unreadCount > 0);
 }
 

@@ -66,7 +66,7 @@ async function loadWalletBalance() {
     const result = await Api.get("/Wallet/balance");
     walletBalance = result?.data?.balance || 0;
   } catch {
-    walletBalance = 0; 
+    walletBalance = 0;
   }
   updateSummary(Object.values(checkoutCart));
 }
@@ -84,8 +84,8 @@ function updateSummary(entries) {
   if (walletApplied > 0) {
     note.style.display = "block";
     note.textContent = remaining > 0
-      ? `${formatNaira(walletApplied)} will be deducted from your wallet automatically. You'll pay the remaining ${formatNaira(remaining)} via Paystack.`
-      : `This order is fully covered by your wallet balance — no payment needed.`;
+      ? `${formatNaira(walletApplied)} will be deducted from your wallet automatically. You'll choose how to handle the remaining ${formatNaira(remaining)} after placing the order.`
+      : `This order is fully covered by your wallet balance — no further payment needed.`;
   } else {
     note.style.display = "none";
   }
@@ -118,7 +118,6 @@ async function placeOrder() {
     });
     const order = orderResult.data;
 
-    
     try {
       await Api.post("/Delivery/create-delivery", {
         orderId: order.id,
@@ -128,19 +127,95 @@ async function placeOrder() {
       showToast(`Order placed, but delivery method couldn't be saved: ${deliveryErr.message}`, "error");
     }
 
-    if (order.amountOwed > 0) {
-      const paymentResult = await Api.post("/Payments/initiate", { orderId: order.id });
-      sessionStorage.removeItem("oe_cart");
-      window.location.href = paymentResult.data.authorizationUrl;
-      return;
-    }
-
     sessionStorage.removeItem("oe_cart");
-    showToast("Order placed! Fully covered by your wallet balance.", "success");
-    setTimeout(() => { window.location.href = "myOrders.html"; }, 1200);
 
+    if (order.amountOwed > 0) {
+      showPayChoiceModal(order);
+    } else {
+      showToast("Order placed! Fully covered by your wallet balance.", "success");
+      setTimeout(() => { window.location.href = "myOrders.html"; }, 1200);
+    }
   } catch (err) {
     showToast(err.message, "error");
     setButtonLoading(btn, false);
   }
+}
+
+function showPayChoiceModal(order) {
+  const overlay = document.createElement("div");
+  overlay.style.cssText = `
+    position: fixed; inset: 0; background: rgba(43,36,32,0.45);
+    display: flex; align-items: center; justify-content: center; z-index: 100;
+  `;
+  overlay.innerHTML = `
+    <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: var(--sp-6); max-width: 420px; width: 90%; text-align: center;">
+      <h2 style="margin-bottom: var(--sp-2);">Order placed!</h2>
+      <p style="color: var(--color-ink-soft); margin-bottom: var(--sp-5);">
+        ₦${order.amountOwed.toFixed(2)} is still outstanding on this order. Would you like to pay now, or pay later from My Orders?
+      </p>
+      <button class="btn btn-primary btn-block" id="payChoiceNowBtn" style="margin-bottom: var(--sp-3);">Pay now</button>
+      <button class="btn btn-outline btn-block" id="payChoiceLaterBtn">Pay later</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  document.getElementById("payChoiceNowBtn").addEventListener("click", () => {
+    overlay.remove();
+    showPayAmountModal(order.id, order.amountOwed);
+  });
+
+  document.getElementById("payChoiceLaterBtn").addEventListener("click", () => {
+    window.location.href = "myOrders.html";
+  });
+}
+
+function showPayAmountModal(orderId, maxAmount) {
+  const overlay = document.createElement("div");
+  overlay.style.cssText = `
+    position: fixed; inset: 0; background: rgba(43,36,32,0.45);
+    display: flex; align-items: center; justify-content: center; z-index: 100;
+  `;
+  overlay.innerHTML = `
+    <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: var(--sp-6); max-width: 380px; width: 90%;">
+      <h2 style="margin-bottom: var(--sp-2); text-align:center;">Pay via Paystack</h2>
+      <p style="color: var(--color-ink-soft); margin-bottom: var(--sp-4); text-align:center;">
+        Enter how much you'd like to pay now (up to ${formatNaira(maxAmount)}).
+      </p>
+      <input type="number" id="payAmountInput"
+        style="width:100%; height:46px; padding:0 var(--sp-4); border:1.5px solid var(--color-border); border-radius:var(--radius-sm);
+               font-family: var(--font-mono); font-size: var(--fs-md); text-align:center; margin-bottom: var(--sp-2);"
+        value="${maxAmount.toFixed(2)}" min="1" max="${maxAmount}" step="0.01">
+      <div id="payAmountError" style="color: var(--color-danger); font-size: var(--fs-xs); text-align:center; min-height: 16px; margin-bottom: var(--sp-4);"></div>
+      <button class="btn btn-primary btn-block" id="payAmountConfirmBtn" style="margin-bottom: var(--sp-3);">Continue to Paystack</button>
+      <button class="btn btn-outline btn-block" id="payAmountCancelBtn">Pay later instead</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  document.getElementById("payAmountCancelBtn").addEventListener("click", () => {
+    window.location.href = "myOrders.html";
+  });
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) window.location.href = "myOrders.html"; });
+
+  document.getElementById("payAmountConfirmBtn").addEventListener("click", async () => {
+    const input = document.getElementById("payAmountInput");
+    const errorEl = document.getElementById("payAmountError");
+    const amount = Number(input.value);
+
+    if (!amount || amount <= 0 || amount > maxAmount) {
+      errorEl.textContent = `Enter an amount between ₦0 and ${formatNaira(maxAmount)}`;
+      return;
+    }
+
+    const btn = document.getElementById("payAmountConfirmBtn");
+    setButtonLoading(btn, true, "Redirecting...");
+
+    try {
+      const result = await Api.post("/Payments/initiate", { orderId, amount });
+      window.location.href = result.data.authorizationUrl;
+    } catch (err) {
+      errorEl.textContent = err.message;
+      setButtonLoading(btn, false);
+    }
+  });
 }

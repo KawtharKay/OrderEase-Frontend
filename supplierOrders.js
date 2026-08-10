@@ -1,5 +1,5 @@
 /* ==========================================================================
-   OrderEase Supplier — Orders Fulfillment Logic
+   OrderEase Supplier -  Orders Fulfillment Logic
    ========================================================================== */
 
 const ORDER_STATUSES = [
@@ -7,8 +7,11 @@ const ORDER_STATUSES = [
   { value: 2, label: "Processing" },
   { value: 3, label: "Dispatched" },
   { value: 4, label: "ReadyForPickup" },
-  { value: 5, label: "Delivered" }
+  { value: 5, label: "Delivered" },
+  { value: 6, label: "Cancelled" }
 ];
+
+const SUPPLIER_EDITABLE_STATUSES = ORDER_STATUSES.filter(s => s.label !== "Cancelled");
 
 const DELIVERY_METHODS = [
   { value: 1, label: "Dispatch Rider" },
@@ -78,15 +81,22 @@ function renderOrders() {
   list.innerHTML = filtered.map(renderOrderRow).join("");
 
   filtered.forEach(order => {
-    document.getElementById(`status-${order.id}`).addEventListener("change", (e) => updateStatus(order.id, e.target.value));
+    const select = document.getElementById(`status-${order.id}`);
+    if (!select.disabled) {
+      select.addEventListener("change", (e) => updateStatus(order.id, e.target.value));
+    }
     document.getElementById(`toggle-${order.id}`).addEventListener("click", () => toggleOrderDetail(order.id));
   });
 }
 
 function renderOrderRow(order) {
-  const statusOptions = ORDER_STATUSES.map(s =>
-    `<option value="${s.value}" ${s.label === order.orderStatus ? "selected" : ""}>${s.label}</option>`
-  ).join("");
+  const isCancelled = order.orderStatus === "Cancelled";
+
+  const statusOptions = isCancelled
+    ? `<option value="6" selected>Cancelled</option>`
+    : SUPPLIER_EDITABLE_STATUSES.map(s =>
+        `<option value="${s.value}" ${s.label === order.orderStatus ? "selected" : ""}>${s.label}</option>`
+      ).join("");
 
   return `
     <div class="sup-order-row">
@@ -95,7 +105,7 @@ function renderOrderRow(order) {
         <div class="cust">${order.customerName} · ${formatDate(order.orderDate)}</div>
       </div>
       <div class="sup-order-total">${formatNaira(order.totalPrice)}</div>
-      <select class="status-select" id="status-${order.id}">${statusOptions}</select>
+      <select class="status-select" id="status-${order.id}" ${isCancelled ? "disabled" : ""}>${statusOptions}</select>
       <button class="sup-order-toggle" id="toggle-${order.id}">▾</button>
       <div class="sup-order-detail" id="detail-${order.id}">
         <p style="color:var(--color-ink-soft);">Loading order details...</p>

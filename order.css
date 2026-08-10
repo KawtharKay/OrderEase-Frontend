@@ -38,6 +38,7 @@
 .status-Dispatched { background: var(--color-secondary-tint); color: var(--color-secondary-dark); }
 .status-ReadyForPickup { background: var(--color-primary-tint); color: var(--color-primary-dark); }
 .status-Delivered { background: var(--color-success-tint); color: var(--color-success); }
+.status-Cancelled { background: var(--color-danger-tint); color: var(--color-danger); }
 
 .order-detail {
   display: none;
