@@ -22,7 +22,6 @@
 
       <div class="nav-links" id="navLinks">
         <a href="catalogue.html" class="active">Catalogue</a>
-        <!-- Signed-in-only and guest-only links are injected by catalogue.js -->
       </div>
 
       <button class="nav-cart-btn" id="cartToggleBtn" aria-label="Open cart">
@@ -52,6 +51,12 @@
     <div id="emptyState" class="empty-state" style="display:none;">
       <h3>No items found</h3>
       <p>Try a different search term or category.</p>
+    </div>
+
+    <div id="catalogPagination" class="pagination-bar" style="display:none;">
+      <button type="button" class="btn btn-outline btn-sm" id="catalogPrevBtn">← Prev</button>
+      <span id="catalogPageInfo" style="color:var(--color-ink-soft); font-size:var(--fs-sm);"></span>
+      <button type="button" class="btn btn-outline btn-sm" id="catalogNextBtn">Next →</button>
     </div>
   </div>
 

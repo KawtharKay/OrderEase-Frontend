@@ -3,6 +3,20 @@
    ========================================================================== */
 
 const orderDetailCache = {};
+const deliveryDetailCache = {};
+const STATUS_SECTION_ORDER = ["Received", "Processing", "Dispatched", "ReadyForPickup", "Delivered", "Returned", "Cancelled"];
+const DEFAULT_OPEN_STATUSES = new Set(["Received", "Processing", "Dispatched", "ReadyForPickup"]);
+const STATUS_DISPLAY_LABELS = {
+  Received: "Received",
+  Processing: "Processing",
+  Dispatched: "Dispatched",
+  ReadyForPickup: "Ready for Pickup",
+  Delivered: "Delivered",
+  Cancelled: "Cancelled",
+  Returned: "Returned"
+};
+let expandedSections = {};
+
 let allOrders = [];
 let orderSearchTerm = "";
 let walletBalance = 0;
@@ -37,11 +51,43 @@ async function loadOrders() {
     const result = await Api.get("/Orders/my-orders");
     allOrders = result?.data || [];
     allOrders.sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate));
+    renderOutstandingBanner();
     renderOrders();
   } catch (err) {
     list.innerHTML = "";
     showToast(err.message, "error");
   }
+}
+
+function renderOutstandingBanner() {
+  const banner = document.getElementById("outstandingBanner");
+
+  const payableNow = allOrders.filter(o => o.deliveryFeeConfirmed && o.outstandingBalance > 0);
+  const feePending = allOrders.filter(o => !o.deliveryFeeConfirmed);
+
+  const totalOwed = payableNow.reduce((sum, o) => sum + o.outstandingBalance, 0);
+
+  if (totalOwed <= 0 && feePending.length === 0) {
+    banner.innerHTML = "";
+    return;
+  }
+
+  const owedLine = totalOwed > 0 ? `
+    <div class="owed-line"><strong>${formatNaira(totalOwed)}</strong> outstanding across ${payableNow.length} order${payableNow.length === 1 ? "" : "s"}.</div>
+  ` : "";
+
+  const pendingLine = feePending.length > 0 ? `
+    <div class="pending-line ${totalOwed > 0 ? "with-owed" : ""}">
+      ${feePending.length} order${feePending.length === 1 ? "" : "s"} waiting on the supplier to confirm a delivery fee before payment opens.
+    </div>
+  ` : "";
+
+  banner.innerHTML = `
+    <div class="outstanding-banner ${totalOwed > 0 ? "owed" : "pending-only"}">
+      ${owedLine}
+      ${pendingLine}
+    </div>
+  `;
 }
 
 function renderOrders() {
@@ -70,29 +116,84 @@ function renderOrders() {
   }
 
   emptyState.style.display = "none";
-  list.innerHTML = filtered.map(renderOrderCard).join("");
+
+  const sections = STATUS_SECTION_ORDER
+    .map(status => ({ status, orders: filtered.filter(o => o.orderStatus === status) }))
+    .filter(s => s.orders.length > 0);
+
+  list.innerHTML = sections.map(renderStatusSection).join("");
+
+  sections.forEach(({ status }) => {
+    document.getElementById(`section-head-${status}`).addEventListener("click", () => toggleSection(status));
+  });
 
   filtered.forEach(order => {
     document.getElementById(`head-${order.id}`).addEventListener("click", () => toggleOrder(order.id));
   });
 }
 
-function renderOrderCard(order) {
+function renderStatusSection({ status, orders }) {
+  const isOpen = expandedSections[status] ?? DEFAULT_OPEN_STATUSES.has(status);
+
   return `
-    <div class="order-card">
-      <div class="order-card-head" id="head-${order.id}">
-        <div>
-          <div class="order-id">${order.orderNumber}</div>
-          <div class="order-date">${formatDate(order.orderDate)}</div>
-        </div>
-        <span class="status-badge status-${order.orderStatus}">${order.orderStatus}</span>
-        <div class="order-total">${formatNaira(order.totalPrice)}</div>
-        <span class="order-caret">▾</span>
+    <div class="status-section">
+      <div class="status-section-head" id="section-head-${status}">
+        <span class="status-section-name">${STATUS_DISPLAY_LABELS[status] || status}</span>
+        <span class="status-section-count">${orders.length} order${orders.length === 1 ? "" : "s"}</span>
+        <span class="status-section-caret ${isOpen ? "open" : ""}">▾</span>
       </div>
-      <div class="order-detail" id="detail-${order.id}">
-        <p style="color:var(--color-ink-soft); font-size:var(--fs-sm);">Loading items...</p>
+      <div class="status-section-body ${isOpen ? "open" : ""}" id="section-body-${status}">
+        <table class="orders-table">
+          <thead>
+            <tr>
+              <th>Order</th>
+              <th>Total</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>${orders.map(renderOrderCard).join("")}</tbody>
+        </table>
       </div>
     </div>
+  `;
+}
+
+function toggleSection(status) {
+  const isOpen = expandedSections[status] ?? DEFAULT_OPEN_STATUSES.has(status);
+  expandedSections[status] = !isOpen;
+  document.getElementById(`section-body-${status}`).classList.toggle("open");
+  document.getElementById(`section-head-${status}`).querySelector(".status-section-caret").classList.toggle("open");
+}
+
+function renderOrderCard(order) {
+  const isCancelled = order.orderStatus === "Cancelled";
+  let balanceNote = "";
+
+  if (!isCancelled) {
+    if (!order.deliveryFeeConfirmed) {
+      balanceNote = `<div class="order-balance-note pending">Awaiting delivery fee</div>`;
+    } else if (order.outstandingBalance > 0) {
+      balanceNote = `<div class="order-balance-note owed">You owe ${formatNaira(order.outstandingBalance)}</div>`;
+    }
+  }
+
+  return `
+    <tr class="order-summary-row" id="head-${order.id}">
+      <td>
+        <div class="num">${order.orderNumber}</div>
+        <div class="cust">${formatDate(order.orderDate)}</div>
+        ${balanceNote}
+      </td>
+      <td class="mono-cell">${formatNaira(order.totalPrice)}</td>
+      <td style="text-align:right;"><span class="order-caret">▾</span></td>
+    </tr>
+    <tr class="order-detail-row">
+      <td colspan="3">
+        <div class="order-detail" id="detail-${order.id}">
+          <p style="color:var(--color-ink-soft); font-size:var(--fs-sm);">Loading items...</p>
+        </div>
+      </td>
+    </tr>
   `;
 }
 
@@ -111,9 +212,16 @@ async function toggleOrder(orderId) {
 async function fetchAndRenderOrderDetail(orderId) {
   const detail = document.getElementById(`detail-${orderId}`);
   try {
-    const result = await Api.get(`/Orders/${orderId}`);
-    orderDetailCache[orderId] = result.data;
-    renderOrderDetail(orderId, result.data);
+    const [orderResult, deliveryResult] = await Promise.allSettled([
+      Api.get(`/Orders/${orderId}`),
+      Api.get(`/Delivery/order/${orderId}`)
+    ]);
+
+    if (orderResult.status !== "fulfilled") throw new Error(orderResult.reason.message);
+
+    orderDetailCache[orderId] = orderResult.value.data;
+    deliveryDetailCache[orderId] = deliveryResult.status === "fulfilled" ? deliveryResult.value.data : null;
+    renderOrderDetail(orderId, orderResult.value.data);
   } catch (err) {
     detail.innerHTML = `<p style="color:var(--color-danger); font-size:var(--fs-sm);">Couldn't load items: ${err.message}</p>`;
   }
@@ -133,15 +241,33 @@ function renderOrderDetail(orderId, order) {
     </div>
   `).join("");
 
+  const delivery = deliveryDetailCache[orderId];
+  const deliveryHtml = delivery ? `
+    <div class="order-detail-line" style="border-top: 1px solid var(--color-border); padding-top: var(--sp-3);">
+      <div>
+        <div class="item-name">${delivery.deliveryMethod}</div>
+        ${delivery.deliveryAddress ? `<div class="item-qty">${delivery.deliveryAddress}</div>` : ""}
+      </div>
+    </div>
+  ` : "";
+
   let paymentButtons = "";
   if (order.outstandingBalance > 0 && !isCancelled) {
-    const walletButton = walletBalance > 0
-      ? `<button class="btn btn-outline btn-block" style="margin-top: var(--sp-2);" onclick="useWallet('${orderId}')">Use wallet (${formatNaira(walletBalance)} available)</button>`
-      : "";
-    paymentButtons = `
-      <button class="btn btn-primary btn-block" style="margin-top: var(--sp-3);" onclick="payViaPaystack('${orderId}')">Pay</button>
-      ${walletButton}
-    `;
+    if (!order.deliveryFeeConfirmed) {
+      paymentButtons = `
+        <p style="color:var(--color-ink-soft); font-size:var(--fs-sm); margin-top: var(--sp-3);">
+          Delivery fee for this location is currently unavailable. Please contact the supplier for delivery arrangements — you'll be notified once your fee is confirmed.
+        </p>
+      `;
+    } else {
+      const walletButton = walletBalance > 0
+        ? `<button class="btn btn-outline btn-block" style="margin-top: var(--sp-2);" onclick="useWallet('${orderId}')">Use wallet (${formatNaira(walletBalance)} available)</button>`
+        : "";
+      paymentButtons = `
+        <button class="btn btn-primary btn-block" style="margin-top: var(--sp-3);" onclick="payViaPaystack('${orderId}')">Pay</button>
+        ${walletButton}
+      `;
+    }
   }
 
   const cancelButton = (order.orderStatus !== "Delivered" && !isCancelled)
@@ -150,6 +276,10 @@ function renderOrderDetail(orderId, order) {
 
   const summary = `
     <div class="order-payment-summary">
+      <div class="order-payment-row"><span>Items subtotal</span><span class="mono">${formatNaira(order.itemsSubtotal)}</span></div>
+      ${order.deliveryCharges.map(c => `
+        <div class="order-payment-row"><span>${c.label}</span><span class="mono">${formatNaira(c.amount)}</span></div>
+      `).join("")}
       <div class="order-payment-row"><span>Order total</span><span class="mono">${formatNaira(order.totalPrice)}</span></div>
       ${order.walletAmountUsed > 0 ? `<div class="order-payment-row"><span>Paid from wallet</span><span class="mono">${formatNaira(order.walletAmountUsed)}</span></div>` : ""}
       <div class="order-payment-row"><span>Total paid</span><span class="mono paid">${formatNaira(order.totalPaid)}</span></div>
@@ -159,7 +289,8 @@ function renderOrderDetail(orderId, order) {
     </div>
   `;
 
-  detail.innerHTML = itemLines + summary;
+  detail.innerHTML = itemLines + deliveryHtml + summary + renderStatusTimeline(orderId, order.statusHistory);
+  document.getElementById(`timeline-toggle-${orderId}`)?.addEventListener("click", () => toggleTimeline(orderId));
 }
 
 async function useWallet(orderId) {

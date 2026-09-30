@@ -58,12 +58,6 @@ async function apiRequest(path, { method = "GET", body = null, auth = true } = {
     throw new ApiError(message, response.status, data);
   }
 
-  // Your Result<T> wrapper returns HTTP 200 even on business-logic failures
-  // (wrong password, unverified account, insufficient stock, etc.) — the
-  // failure only shows up in the response body's `status` field, not the
-  // HTTP status code. Without this check, every such failure silently
-  // returns data: null to the caller, which then crashes trying to read
-  // a property off it instead of showing the real error message.
   if (data && data.status === false) {
     throw new ApiError(data.message || "Request failed. Please try again.", response.status, data);
   }

@@ -40,13 +40,21 @@
     <div class="supplier-layout">
       <div class="panel">
         <div class="panel-head"><h2>Items</h2></div>
-        <div class="filter-bar" style="margin-bottom: var(--sp-4);">
-          <input type="text" class="search-input" id="itemSearchInput" placeholder="Search items by title or category...">
+        <div class="filter-bar" style="margin-bottom: var(--sp-4); display:flex; gap: var(--sp-2);">
+          <input type="text" class="search-input" id="itemSearchInput" placeholder="Search items by title or category..." style="flex:1;">
+          <select id="itemCategoryFilter" style="min-width: 160px;">
+            <option value="">All categories</option>
+          </select>
         </div>
         <div id="itemsList"><!-- item rows render here --></div>
         <div id="itemsEmpty" class="empty-state" style="display:none;">
           <h3>No items yet</h3>
           <p>Add your first item to start selling.</p>
+        </div>
+        <div id="itemsPagination" class="pagination-bar" style="display:none;">
+          <button type="button" class="btn btn-outline btn-sm" id="itemsPrevBtn">← Prev</button>
+          <span id="itemsPageInfo" style="color:var(--color-ink-soft); font-size:var(--fs-sm);"></span>
+          <button type="button" class="btn btn-outline btn-sm" id="itemsNextBtn">Next →</button>
         </div>
       </div>
 
@@ -92,16 +100,62 @@
         </div>
 
         <div class="field">
-          <label for="priceInput">Price (₦)</label>
+          <label for="priceInput">Selling price (₦)</label>
           <input type="number" id="priceInput" min="1" step="0.01" required>
         </div>
 
         <div class="field">
-          <label for="quantityInput">Quantity in stock</label>
+          <label for="costPriceInput">Cost price (₦)</label>
+          <input type="number" id="costPriceInput" min="0" step="0.01" required>
+        </div>
+
+        <div class="field" id="quantityFieldWrap">
+          <label for="quantityInput">Starting stock quantity</label>
           <input type="number" id="quantityInput" min="0" step="1" required>
         </div>
 
+        <div class="field" id="currentStockWrap" style="display:none;">
+          <label>Current stock</label>
+          <div class="current-stock-row">
+            <span id="currentStockValue">0</span> in stock
+            <button type="button" class="btn btn-outline btn-sm" id="openAddStockBtn">Add stock</button>
+          </div>
+        </div>
+
         <button type="submit" class="btn btn-primary btn-block" id="itemSubmitBtn">Save item</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add stock modal -->
+  <div class="sup-modal-overlay" id="addStockModal">
+    <div class="sup-modal-box">
+      <div class="sup-modal-head">
+        <h2>Add stock</h2>
+        <button class="sup-modal-close" id="addStockModalCloseBtn">&times;</button>
+      </div>
+
+      <form id="addStockForm">
+        <input type="hidden" id="addStockItemId">
+
+        <p id="addStockItemTitle" style="color:var(--color-ink-soft); margin-bottom: var(--sp-3);"></p>
+
+        <div class="field">
+          <label for="addStockQuantityInput">Quantity received</label>
+          <input type="number" id="addStockQuantityInput" min="1" step="1" required>
+        </div>
+
+        <div class="field">
+          <label for="addStockCostPriceInput">Cost price for this batch (₦)</label>
+          <input type="number" id="addStockCostPriceInput" min="0" step="0.01" required>
+        </div>
+
+        <div class="field">
+          <label for="addStockReferenceInput">Supplier / reference (optional)</label>
+          <input type="text" id="addStockReferenceInput" maxlength="200" placeholder="e.g. invoice number, supplier name">
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block" id="addStockSubmitBtn">Add stock</button>
       </form>
     </div>
   </div>

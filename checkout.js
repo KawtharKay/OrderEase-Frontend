@@ -3,6 +3,7 @@
    ========================================================================== */
 
 let checkoutCart = {};
+let deliveryLocations = [];
 
 document.addEventListener("DOMContentLoaded", async () => {
   if (!TokenStore.get() || !TokenStore.getUser()) {
@@ -14,10 +15,44 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   loadCart();
   initDeliveryOptions();
-  await loadWalletBalance();
+  await Promise.all([loadWalletBalance(), loadDeliveryLocations()]);
 
   document.getElementById("placeOrderBtn").addEventListener("click", placeOrder);
 });
+
+async function loadDeliveryLocations() {
+  const select = document.getElementById("deliveryLocation");
+  try {
+    const result = await Api.get("/DeliveryLocation");
+    deliveryLocations = result?.data || [];
+
+    if (deliveryLocations.length === 0) {
+      select.innerHTML = `<option value="">My location isn't here</option>`;
+    } else {
+      select.innerHTML = deliveryLocations
+        .map(loc => `<option value="${loc.id}">${loc.name} - ${formatNaira(loc.fee)}</option>`)
+        .join("") + `<option value="">My location isn't here</option>`;
+    }
+    updateLocationHint();
+  } catch {
+    deliveryLocations = [];
+    select.innerHTML = `<option value="">My location isn't here</option>`;
+    updateLocationHint();
+  }
+}
+
+function updateLocationHint() {
+  const select = document.getElementById("deliveryLocation");
+  const hint = document.getElementById("deliveryLocationHint");
+
+  if (!select.value) {
+    hint.textContent = deliveryLocations.length === 0
+      ? "No preconfigured locations yet, the supplier will set your delivery fee after you place this order."
+      : "The supplier will set your delivery fee manually after you place this order, since your area isn't on the list.";
+  } else {
+    hint.textContent = "This fee applies automatically, no need to wait for the supplier.";
+  }
+}
 
 function loadCart() {
   try {
@@ -73,19 +108,15 @@ async function loadWalletBalance() {
 
 function updateSummary(entries) {
   const subtotal = getSubtotal(entries);
-  const walletApplied = Math.min(walletBalance, subtotal);
-  const remaining = subtotal - walletApplied;
 
   document.getElementById("summarySubtotal").textContent = formatNaira(subtotal);
-  document.getElementById("summaryWallet").textContent = `${formatNaira(walletApplied)} of ${formatNaira(walletBalance)}`;
-  document.getElementById("summaryTotal").textContent = formatNaira(remaining);
+  document.getElementById("summaryWallet").textContent = formatNaira(walletBalance);
+  document.getElementById("summaryTotal").textContent = formatNaira(subtotal);
 
   const note = document.getElementById("walletNote");
-  if (walletApplied > 0) {
+  if (walletBalance > 0) {
     note.style.display = "block";
-    note.textContent = remaining > 0
-      ? `${formatNaira(walletApplied)} will be deducted from your wallet automatically. You'll choose how to handle the remaining ${formatNaira(remaining)} after placing the order.`
-      : `This order is fully covered by your wallet balance — no further payment needed.`;
+    note.textContent = `You have ${formatNaira(walletBalance)} in your wallet. Nothing is charged automatically; after placing your order you'll choose how to pay: wallet, Paystack, or later.`;
   } else {
     note.style.display = "none";
   }
@@ -98,9 +129,23 @@ function initDeliveryOptions() {
       options.forEach(o => o.classList.remove("selected"));
       opt.classList.add("selected");
       opt.querySelector("input").checked = true;
+      updateDeliveryAddressField();
     });
   });
   options[0].classList.add("selected");
+  updateDeliveryAddressField();
+
+  document.getElementById("deliveryLocation").addEventListener("change", updateLocationHint);
+}
+
+function updateDeliveryAddressField() {
+  const method = Number(document.querySelector('input[name="deliveryMethod"]:checked').value);
+  const section = document.getElementById("deliveryAddressSection");
+  const locationSection = document.getElementById("deliveryLocationSection");
+
+  const isDispatchRider = method === 1;
+  locationSection.style.display = isDispatchRider ? "block" : "none";
+  section.style.display = isDispatchRider ? "block" : "none";
 }
 
 async function placeOrder() {
@@ -109,6 +154,16 @@ async function placeOrder() {
   if (entries.length === 0) return;
 
   const deliveryMethod = Number(document.querySelector('input[name="deliveryMethod"]:checked').value);
+  const deliveryAddress = document.getElementById("deliveryAddress").value.trim();
+  const deliveryLocationId = deliveryMethod === 1 ? (document.getElementById("deliveryLocation").value || null) : null;
+  const addressError = document.getElementById("deliveryAddressError");
+
+  if (deliveryMethod === 1 && !deliveryAddress) {
+    addressError.style.display = "block";
+    document.getElementById("deliveryAddress").focus();
+    return;
+  }
+  addressError.style.display = "none";
 
   setButtonLoading(btn, true, "Placing order...");
 
@@ -116,24 +171,42 @@ async function placeOrder() {
     const orderResult = await Api.post("/Orders", {
       items: entries.map(({ item, quantity }) => ({ itemId: item.id, quantity }))
     });
-    const order = orderResult.data;
+    let order = orderResult.data;
 
+    let deliveryCreated = true;
     try {
       await Api.post("/Delivery/create-delivery", {
         orderId: order.id,
-        deliveryMethod
+        deliveryMethod,
+        deliveryAddress: deliveryMethod === 1 ? deliveryAddress : null,
+        deliveryLocationId
       });
+
+      const freshOrder = await Api.get(`/Orders/${order.id}`);
+      order = freshOrder.data;
+      order.amountOwed = order.outstandingBalance;
     } catch (deliveryErr) {
-      showToast(`Order placed, but delivery method couldn't be saved: ${deliveryErr.message}`, "error");
+      deliveryCreated = false;
+      showToast(`Order placed, but delivery details couldn't be saved: ${deliveryErr.message}`, "error");
     }
 
     sessionStorage.removeItem("oe_cart");
 
-    if (order.amountOwed > 0) {
-      showPayChoiceModal(order);
+    if (!deliveryCreated) {
+      window.location.href = "myOrders.html";
+      return;
+    }
+
+    if (order.deliveryFeeConfirmed) {
+      if (order.outstandingBalance > 0 || order.amountOwed > 0) {
+        showPayChoiceModal(order);
+      } else {
+        showToast("Order placed successfully!", "success");
+        setTimeout(() => { window.location.href = "myOrders.html"; }, 1200);
+      }
     } else {
-      showToast("Order placed! Fully covered by your wallet balance.", "success");
-      setTimeout(() => { window.location.href = "myOrders.html"; }, 1200);
+      showToast("Order placed! Delivery fee for this location is currently unavailable, the supplier will contact you to arrange delivery and confirm the fee.", "success");
+      setTimeout(() => { window.location.href = "myOrders.html"; }, 2500);
     }
   } catch (err) {
     showToast(err.message, "error");
@@ -147,17 +220,39 @@ function showPayChoiceModal(order) {
     position: fixed; inset: 0; background: rgba(43,36,32,0.45);
     display: flex; align-items: center; justify-content: center; z-index: 100;
   `;
+
+  const walletButton = walletBalance > 0
+    ? `<button class="btn btn-outline btn-block" id="payChoiceWalletBtn" style="margin-bottom: var(--sp-3);">Pay with wallet (${formatNaira(walletBalance)} available)</button>`
+    : "";
+
   overlay.innerHTML = `
     <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: var(--sp-6); max-width: 420px; width: 90%; text-align: center;">
       <h2 style="margin-bottom: var(--sp-2);">Order placed!</h2>
       <p style="color: var(--color-ink-soft); margin-bottom: var(--sp-5);">
-        ₦${order.amountOwed.toFixed(2)} is still outstanding on this order. Would you like to pay now, or pay later from My Orders?
+        ₦${order.amountOwed.toFixed(2)} is due on this order. How would you like to pay?
       </p>
-      <button class="btn btn-primary btn-block" id="payChoiceNowBtn" style="margin-bottom: var(--sp-3);">Pay now</button>
+      ${walletButton}
+      <button class="btn btn-primary btn-block" id="payChoiceNowBtn" style="margin-bottom: var(--sp-3);">Pay with Paystack</button>
       <button class="btn btn-outline btn-block" id="payChoiceLaterBtn">Pay later</button>
     </div>
   `;
   document.body.appendChild(overlay);
+
+  if (walletBalance > 0) {
+    document.getElementById("payChoiceWalletBtn").addEventListener("click", async () => {
+      const btn = document.getElementById("payChoiceWalletBtn");
+      setButtonLoading(btn, true, "Applying wallet...");
+      try {
+        const result = await Api.post(`/Orders/${order.id}/pay-with-wallet`, {});
+        overlay.remove();
+        showToast(result.message, "success");
+        setTimeout(() => { window.location.href = "myOrders.html"; }, 1200);
+      } catch (err) {
+        showToast(err.message, "error");
+        setButtonLoading(btn, false);
+      }
+    });
+  }
 
   document.getElementById("payChoiceNowBtn").addEventListener("click", () => {
     overlay.remove();

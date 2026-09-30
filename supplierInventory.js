@@ -6,9 +6,13 @@ let categories = [];
 let items = [];
 let selectedImageFile = null;
 let existingImageUrl = "";
-let expandedGroups = {};
 let itemSearchTerm = "";
+let itemCategoryFilter = "";
 let categorySearchTerm = "";
+let currentPage = 1;
+let totalPages = 1;
+const PAGE_SIZE = 20;
+let searchDebounceTimer = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
   const user = requireAuth("app_supplier");
@@ -16,6 +20,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   document.getElementById("logoutLink").addEventListener("click", handleLogout);
   initItemModal();
+  initAddStockModal();
 
   document.getElementById("newItemBtn").addEventListener("click", () => openItemModal());
   document.getElementById("itemForm").addEventListener("submit", submitItemForm);
@@ -23,8 +28,26 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("imageInput").addEventListener("change", handleImagePreview);
 
   document.getElementById("itemSearchInput").addEventListener("input", (e) => {
-    itemSearchTerm = e.target.value.trim().toLowerCase();
-    renderGroupedItems();
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {
+      itemSearchTerm = e.target.value.trim();
+      currentPage = 1;
+      loadItems();
+    }, 300); 
+  });
+
+  document.getElementById("itemCategoryFilter").addEventListener("change", (e) => {
+    itemCategoryFilter = e.target.value;
+    currentPage = 1;
+    loadItems();
+  });
+
+  document.getElementById("itemsPrevBtn").addEventListener("click", () => {
+    if (currentPage > 1) { currentPage--; loadItems(); }
+  });
+
+  document.getElementById("itemsNextBtn").addEventListener("click", () => {
+    if (currentPage < totalPages) { currentPage++; loadItems(); }
   });
 
   document.getElementById("categorySearchInput").addEventListener("input", (e) => {
@@ -80,6 +103,12 @@ function renderCategoriesSidebar() {
 function renderCategorySelect() {
   const select = document.getElementById("categorySelect");
   select.innerHTML = categories.map(cat => `<option value="${cat.id}">${cat.name}</option>`).join("");
+
+  const filter = document.getElementById("itemCategoryFilter");
+  const previousValue = filter.value;
+  filter.innerHTML = `<option value="">All categories</option>` +
+    categories.map(cat => `<option value="${cat.id}">${cat.name}</option>`).join("");
+  filter.value = previousValue;
 }
 
 async function submitNewCategory(e) {
@@ -111,94 +140,70 @@ async function deleteCategory(id) {
   }
 }
 
-/* ---------- Items — grouped by category, with search ---------- */
+/* ---------- Items — server-side search, filter, and pagination ---------- */
 async function loadItems() {
   const list = document.getElementById("itemsList");
   const emptyState = document.getElementById("itemsEmpty");
+  const pagination = document.getElementById("itemsPagination");
   list.innerHTML = `<p style="color:var(--color-ink-soft);">Loading items...</p>`;
+  pagination.style.display = "none";
 
   try {
-    const result = await Api.get("/Item");
-    items = result?.data || [];
+    const params = new URLSearchParams({ page: currentPage, pageSize: PAGE_SIZE });
+    if (itemSearchTerm) params.set("search", itemSearchTerm);
+    if (itemCategoryFilter) params.set("categoryId", itemCategoryFilter);
 
-    if (items.length === 0) {
+    const result = await Api.get(`/Item/supplier?${params.toString()}`);
+    const data = result?.data;
+    items = data?.items || [];
+    totalPages = data?.totalPages || 1;
+    currentPage = data?.page || 1;
+
+    if (data?.totalCount === 0 && !itemSearchTerm && !itemCategoryFilter) {
       list.innerHTML = "";
       emptyState.style.display = "block";
       return;
     }
     emptyState.style.display = "none";
 
-    renderGroupedItems();
+    renderItemsList(data?.totalCount ?? items.length);
   } catch (err) {
     list.innerHTML = "";
     showToast(err.message, "error");
   }
 }
 
-function renderGroupedItems() {
+function renderItemsList(totalCount) {
   const list = document.getElementById("itemsList");
+  const pagination = document.getElementById("itemsPagination");
 
-  const filteredItems = itemSearchTerm
-    ? items.filter(i =>
-        i.title.toLowerCase().includes(itemSearchTerm) ||
-        (categories.find(c => c.id === i.categoryId)?.name || "").toLowerCase().includes(itemSearchTerm)
-      )
-    : items;
-
-  const groups = categories.map(cat => ({
-    id: cat.id,
-    name: cat.name,
-    items: filteredItems.filter(i => i.categoryId === cat.id)
-  })).filter(g => g.items.length > 0);
-
-  const uncategorized = filteredItems.filter(i => !categories.some(c => c.id === i.categoryId));
-  if (uncategorized.length > 0) {
-    groups.push({ id: "uncategorized", name: "Uncategorized", items: uncategorized });
-  }
-
-  if (groups.length === 0) {
+  if (items.length === 0) {
     list.innerHTML = `<p style="color:var(--color-ink-soft); font-size:var(--fs-sm); padding: var(--sp-4) 0;">No items match your search.</p>`;
+    pagination.style.display = "none";
     return;
   }
 
-  list.innerHTML = groups.map(g => renderItemGroup(g, !!itemSearchTerm)).join("");
+  list.innerHTML = items.map(renderItemRow).join("");
 
-  groups.forEach(group => {
-    document.getElementById(`group-head-${group.id}`).addEventListener("click", () => toggleGroup(group.id));
-  });
-
-  filteredItems.forEach(item => {
+  items.forEach(item => {
     document.getElementById(`edit-${item.id}`).addEventListener("click", () => openItemModal(item));
     document.getElementById(`del-${item.id}`).addEventListener("click", () => deleteItem(item.id));
   });
-}
 
-function renderItemGroup(group, forceOpen = false) {
-  const isOpen = forceOpen || !!expandedGroups[group.id];
-
-  return `
-    <div class="item-group">
-      <div class="item-group-head" id="group-head-${group.id}">
-        <span class="item-group-name">${group.name}</span>
-        <span class="item-group-count">${group.items.length} item${group.items.length === 1 ? "" : "s"}</span>
-        <span class="item-group-caret ${isOpen ? "open" : ""}">▾</span>
-      </div>
-      <div class="item-group-body ${isOpen ? "open" : ""}" id="group-body-${group.id}">
-        ${group.items.map(renderItemRow).join("")}
-      </div>
-    </div>
-  `;
-}
-
-function toggleGroup(groupId) {
-  expandedGroups[groupId] = !expandedGroups[groupId];
-  document.getElementById(`group-body-${groupId}`).classList.toggle("open");
-  document.getElementById(`group-head-${groupId}`).querySelector(".item-group-caret").classList.toggle("open");
+  if (totalPages > 1) {
+    pagination.style.display = "flex";
+    document.getElementById("itemsPageInfo").textContent = `Page ${currentPage} of ${totalPages} · ${totalCount} items`;
+    document.getElementById("itemsPrevBtn").disabled = currentPage <= 1;
+    document.getElementById("itemsNextBtn").disabled = currentPage >= totalPages;
+  } else {
+    pagination.style.display = "none";
+  }
 }
 
 function renderItemRow(item) {
   const catName = categories.find(c => c.id === item.categoryId)?.name || "Uncategorized";
   const initial = (item.title || "?").charAt(0).toUpperCase();
+  const profit = item.price - item.costPrice;
 
   return `
     <div class="item-row">
@@ -206,6 +211,7 @@ function renderItemRow(item) {
       <div class="item-row-info">
         <div class="name">${item.title}</div>
         <div class="meta">${catName} · ${item.quantity} in stock · ${item.isAvailable ? "Available" : "Unavailable"}</div>
+        <div class="meta">Cost ${formatNaira(item.costPrice)} · Profit ${formatNaira(profit)}/unit</div>
       </div>
       <div class="item-row-price">${formatNaira(item.price)}</div>
       <div class="item-row-actions">
@@ -246,25 +252,78 @@ function openItemModal(item = null) {
     return;
   }
 
+  const quantityWrap = document.getElementById("quantityFieldWrap");
+  const currentStockWrap = document.getElementById("currentStockWrap");
+
   if (item) {
     document.getElementById("itemModalTitle").textContent = "Edit item";
     document.getElementById("itemId").value = item.id;
     document.getElementById("categorySelect").value = item.categoryId;
     document.getElementById("titleInput").value = item.title;
     document.getElementById("priceInput").value = item.price;
-    document.getElementById("quantityInput").value = item.quantity;
+    document.getElementById("costPriceInput").value = item.costPrice;
     existingImageUrl = item.imageUrl || "";
     document.getElementById("imagePreview").innerHTML = item.imageUrl
       ? `<img src="${item.imageUrl}" alt="${item.title}">`
       : "No image selected";
+
+    quantityWrap.style.display = "none";
+    document.getElementById("quantityInput").required = false;
+    currentStockWrap.style.display = "block";
+    document.getElementById("currentStockValue").textContent = item.quantity;
+    document.getElementById("openAddStockBtn").onclick = () => openAddStockModal(item);
   } else {
     document.getElementById("itemModalTitle").textContent = "Add item";
     document.getElementById("itemId").value = "";
     existingImageUrl = "";
     document.getElementById("imagePreview").innerHTML = "No image selected";
+
+    quantityWrap.style.display = "block";
+    document.getElementById("quantityInput").required = true;
+    document.getElementById("quantityInput").value = 0;
+    currentStockWrap.style.display = "none";
   }
 
   overlay.classList.add("open");
+}
+
+/* ---------- Add stock ---------- */
+function initAddStockModal() {
+  const overlay = document.getElementById("addStockModal");
+  document.getElementById("addStockModalCloseBtn").addEventListener("click", () => overlay.classList.remove("open"));
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.classList.remove("open"); });
+  document.getElementById("addStockForm").addEventListener("submit", submitAddStockForm);
+}
+
+function openAddStockModal(item) {
+  document.getElementById("addStockForm").reset();
+  document.getElementById("addStockItemId").value = item.id;
+  document.getElementById("addStockItemTitle").textContent = `${item.title} — currently ${item.quantity} in stock`;
+  document.getElementById("addStockCostPriceInput").value = item.costPrice;
+  document.getElementById("itemModal").classList.remove("open");
+  document.getElementById("addStockModal").classList.add("open");
+}
+
+async function submitAddStockForm(e) {
+  e.preventDefault();
+  const btn = document.getElementById("addStockSubmitBtn");
+  const itemId = document.getElementById("addStockItemId").value;
+  const quantityAdded = Number(document.getElementById("addStockQuantityInput").value);
+  const costPrice = Number(document.getElementById("addStockCostPriceInput").value);
+  const reference = document.getElementById("addStockReferenceInput").value.trim() || null;
+
+  setButtonLoading(btn, true, "Adding...");
+
+  try {
+    const result = await Api.post(`/Item/${itemId}/add-stock`, { quantityAdded, costPrice, reference });
+    document.getElementById("addStockModal").classList.remove("open");
+    await loadItems();
+    showToast(result.message, "success");
+  } catch (err) {
+    showToast(err.message, "error");
+  } finally {
+    setButtonLoading(btn, false);
+  }
 }
 
 function handleImagePreview(e) {
@@ -287,7 +346,7 @@ async function submitItemForm(e) {
   const categoryId = document.getElementById("categorySelect").value;
   const title = document.getElementById("titleInput").value.trim();
   const price = Number(document.getElementById("priceInput").value);
-  const quantity = Number(document.getElementById("quantityInput").value);
+  const costPrice = Number(document.getElementById("costPriceInput").value);
 
   if (!itemId && !selectedImageFile) {
     showToast("Please choose a photo for this item.", "error");
@@ -307,9 +366,10 @@ async function submitItemForm(e) {
     }
 
     if (itemId) {
-      await Api.patch(`/Item/update-item/${itemId}`, { title, imageUrl, price, quantity });
+      await Api.patch(`/Item/update-item/${itemId}`, { title, imageUrl, price, costPrice });
     } else {
-      await Api.post("/Item/create-item", { categoryId, title, imageUrl, price, quantity });
+      const quantity = Number(document.getElementById("quantityInput").value);
+      await Api.post("/Item/create-item", { categoryId, title, imageUrl, price, costPrice, quantity });
     }
 
     document.getElementById("itemModal").classList.remove("open");

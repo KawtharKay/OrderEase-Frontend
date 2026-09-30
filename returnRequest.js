@@ -3,7 +3,6 @@
    ========================================================================== */
 
 let myOrders = [];
-let itemCategoryMap = {};
 let currentOrderItems = [];
 let allReturnRequests = [];
 let returnSearchTerm = "";
@@ -23,7 +22,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderReturnRequests();
   });
 
-  await Promise.all([loadReturnRequests(), loadOrdersForDropdown(), loadItemCategoryMap()]);
+  await Promise.all([loadReturnRequests(), loadOrdersForDropdown()]);
 });
 
 async function loadReturnRequests() {
@@ -167,13 +166,6 @@ async function loadOrdersForDropdown() {
   }
 }
 
-async function loadItemCategoryMap() {
-  try {
-    const result = await Api.get("/Item");
-    (result?.data || []).forEach(item => { itemCategoryMap[item.id] = item.categoryId; });
-  } catch {}
-}
-
 function initModal() {
   const overlay = document.getElementById("returnModal");
   const open = () => { overlay.classList.add("open"); };
@@ -248,7 +240,7 @@ function validateCategorySelection() {
   const selected = getSelectedReturnItems();
   const warning = document.getElementById("categoryWarning");
 
-  const categories = new Set(selected.map(s => itemCategoryMap[s.itemId]).filter(Boolean));
+  const categories = new Set(selected.map(s => currentOrderItems.find(i => i.itemId === s.itemId)?.categoryId).filter(Boolean));
   const isMixed = categories.size > 1;
   warning.classList.toggle("show", isMixed);
   return !isMixed;
@@ -270,7 +262,7 @@ async function submitReturnRequest(e) {
     return;
   }
 
-  const categoryId = itemCategoryMap[selected[0].itemId];
+  const categoryId = currentOrderItems.find(i => i.itemId === selected[0].itemId)?.categoryId;
   const orderId = document.getElementById("orderSelect").value;
 
   setButtonLoading(btn, true, "Submitting...");

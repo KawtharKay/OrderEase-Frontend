@@ -17,7 +17,7 @@
   cursor: pointer;
   font-size: var(--fs-md);
 }
-.notif-bell-btn:hover { border-color: var(--color-secondary); }
+.notif-bell-btn:hover { border-color: var(--color-primary); }
 
 .notif-badge {
   display: none;

@@ -48,26 +48,38 @@
                 <input type="radio" name="deliveryMethod" value="1" checked>
                 <span class="icon">🏍️</span>
                 <span>
-                  <div class="label">Dispatch Rider</div>
+                  <div class="label">Dispatch</div>
                   <div class="desc">Delivered straight to your address</div>
                 </span>
               </label>
               <label class="delivery-option" data-method="2">
                 <input type="radio" name="deliveryMethod" value="2">
-                <span class="icon">🚌</span>
-                <span>
-                  <div class="label">Motor Park</div>
-                  <div class="desc">Pick up from an agreed motor park</div>
-                </span>
-              </label>
-              <label class="delivery-option" data-method="3">
-                <input type="radio" name="deliveryMethod" value="3">
                 <span class="icon">🏬</span>
                 <span>
                   <div class="label">Customer Pickup</div>
                   <div class="desc">Pick up directly from the store</div>
                 </span>
               </label>
+            </div>
+          </div>
+
+          <div class="checkout-section" id="deliveryLocationSection" style="display:none;">
+            <h2>Delivery location</h2>
+            <div class="field">
+              <label for="deliveryLocation">Select the area closest to your delivery address</label>
+              <select id="deliveryLocation">
+                <option value="">Loading locations...</option>
+              </select>
+              <p id="deliveryLocationHint" style="color:var(--color-ink-soft); font-size:var(--fs-xs); margin-top: var(--sp-2);"></p>
+            </div>
+          </div>
+
+          <div class="checkout-section" id="deliveryAddressSection">
+            <h2>Delivery address</h2>
+            <div class="field">
+              <label for="deliveryAddress" id="deliveryAddressLabel">Where should this order be delivered?</label>
+              <textarea id="deliveryAddress" rows="3" placeholder="Enter the full address for this delivery (street, area, landmark)"></textarea>
+              <div class="field-error" id="deliveryAddressError" style="display:none;">Please enter a delivery address</div>
             </div>
           </div>
         </div>

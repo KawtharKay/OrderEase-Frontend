@@ -2,6 +2,34 @@
    Supplier — orders fulfillment, return approvals, customer balances
    ========================================================================== */
 
+/* ---------- Orders table (supplier) - same visual pattern as balance-table,
+   with an expandable detail row per order using the existing toggle classes ---------- */
+.orders-table { width: 100%; border-collapse: collapse; }
+.orders-table th {
+  text-align: left;
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-ink-soft);
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 2px solid var(--color-border);
+}
+.orders-table td {
+  padding: var(--sp-3);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--fs-sm);
+  vertical-align: middle;
+}
+.orders-table .mono-cell { font-family: var(--font-mono); font-weight: 700; white-space: nowrap; }
+.order-summary-row { cursor: pointer; }
+.order-summary-row:hover { background: var(--color-bg-soft); }
+.order-summary-row .num { font-weight: 700; font-size: var(--fs-sm); }
+.order-summary-row .cust { font-size: var(--fs-xs); color: var(--color-ink-soft); }
+.order-detail-row td { padding: 0; border-bottom: 1px solid var(--color-border); }
+.order-detail-row:last-child td { border-bottom: none; }
+.order-detail-row .sup-order-detail,
+.order-detail-row .order-detail { padding: var(--sp-4); }
+
 .sup-order-row {
   display: flex;
   align-items: center;

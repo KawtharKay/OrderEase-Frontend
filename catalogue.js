@@ -3,10 +3,14 @@
    ========================================================================== */
 
 let allItems = [];
-let categoryMap = {}; // categoryId -> categoryName
-let cart = {}; // itemId -> { item, quantity }
+let categoryMap = {};
+let cart = {};
 let activeCategory = "all";
 let searchTerm = "";
+let currentPage = 1;
+let totalPages = 1;
+const PAGE_SIZE = 20;
+let searchDebounceTimer = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
   renderNavForAuthState();
@@ -59,18 +63,27 @@ function renderNavForAuthState() {
 async function loadItems() {
   const grid = document.getElementById("itemGrid");
   grid.innerHTML = `<p style="color:var(--color-ink-soft);">Loading catalogue...</p>`;
+  document.getElementById("catalogPagination").style.display = "none";
 
   try {
+    const params = new URLSearchParams({ page: currentPage, pageSize: PAGE_SIZE });
+    if (searchTerm) params.set("search", searchTerm);
+    if (activeCategory !== "all") params.set("categoryId", activeCategory);
+
     const [itemsResult, categoriesResult] = await Promise.all([
-      Api.get("/Item"),
+      Api.get(`/Item?${params.toString()}`),
       Api.get("/Category")
     ]);
 
     (categoriesResult?.data || []).forEach(cat => { categoryMap[cat.id] = cat.name; });
 
-    allItems = itemsResult?.data || [];
-    renderCategoryChips();
-    renderItems();
+    const data = itemsResult?.data;
+    allItems = data?.items || [];
+    totalPages = data?.totalPages || 1;
+    currentPage = data?.page || 1;
+
+    renderCategoryChips(categoriesResult?.data || []);
+    renderItems(data?.totalCount ?? allItems.length);
   } catch (err) {
     grid.innerHTML = "";
     showToast(err.message, "error");
@@ -78,56 +91,64 @@ async function loadItems() {
   }
 }
 
-function renderCategoryChips() {
-  const categoryIds = [...new Set(allItems.map(i => i.categoryId).filter(Boolean))];
+function renderCategoryChips(allCategories) {
   const wrap = document.getElementById("categoryChips");
+  if (wrap.dataset.built === "true") return;
+  wrap.dataset.built = "true";
 
-  categoryIds.forEach(catId => {
+  allCategories.forEach(cat => {
     const btn = document.createElement("button");
     btn.className = "category-chip";
-    btn.dataset.category = catId;
-    btn.textContent = categoryMap[catId] || "Uncategorized";
+    btn.dataset.category = cat.id;
+    btn.textContent = cat.name;
     btn.addEventListener("click", () => {
-      activeCategory = catId;
+      activeCategory = cat.id;
+      currentPage = 1;
       document.querySelectorAll(".category-chip").forEach(c => c.classList.remove("active"));
       btn.classList.add("active");
-      renderItems();
+      loadItems();
     });
     wrap.appendChild(btn);
   });
 
   document.querySelector('.category-chip[data-category="all"]').addEventListener("click", (e) => {
     activeCategory = "all";
+    currentPage = 1;
     document.querySelectorAll(".category-chip").forEach(c => c.classList.remove("active"));
     e.target.classList.add("active");
-    renderItems();
+    loadItems();
   });
 }
 
-function renderItems() {
+function renderItems(totalCount) {
   const grid = document.getElementById("itemGrid");
   const emptyState = document.getElementById("emptyState");
+  const pagination = document.getElementById("catalogPagination");
 
-  let filtered = allItems.filter(item => {
-    const matchesCategory = activeCategory === "all" || item.categoryId === activeCategory;
-    const matchesSearch = !searchTerm || item.title?.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
-
-  if (filtered.length === 0) {
+  if (allItems.length === 0) {
     grid.innerHTML = "";
     emptyState.style.display = "block";
+    pagination.style.display = "none";
     return;
   }
   emptyState.style.display = "none";
 
-  grid.innerHTML = filtered.map(item => renderItemCard(item)).join("");
+  grid.innerHTML = allItems.map(item => renderItemCard(item)).join("");
 
-  filtered.forEach(item => {
+  allItems.forEach(item => {
     const card = document.getElementById(`item-${item.id}`);
     const addBtn = card?.querySelector(".add-to-cart-btn");
     if (addBtn) addBtn.addEventListener("click", () => addToCart(item));
   });
+
+  if (totalPages > 1) {
+    pagination.style.display = "flex";
+    document.getElementById("catalogPageInfo").textContent = `Page ${currentPage} of ${totalPages} · ${totalCount} items`;
+    document.getElementById("catalogPrevBtn").disabled = currentPage <= 1;
+    document.getElementById("catalogNextBtn").disabled = currentPage >= totalPages;
+  } else {
+    pagination.style.display = "none";
+  }
 }
 
 function renderItemCard(item) {
@@ -260,8 +281,20 @@ function initCartDrawer() {
 function initSearchAndFilter() {
   const input = document.getElementById("searchInput");
   input.addEventListener("input", (e) => {
-    searchTerm = e.target.value;
-    renderItems();
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {
+      searchTerm = e.target.value.trim();
+      currentPage = 1;
+      loadItems();
+    }, 300); 
+  });
+
+  document.getElementById("catalogPrevBtn").addEventListener("click", () => {
+    if (currentPage > 1) { currentPage--; loadItems(); window.scrollTo({ top: 0, behavior: "smooth" }); }
+  });
+
+  document.getElementById("catalogNextBtn").addEventListener("click", () => {
+    if (currentPage < totalPages) { currentPage++; loadItems(); window.scrollTo({ top: 0, behavior: "smooth" }); }
   });
 }
 

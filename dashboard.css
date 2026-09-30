@@ -18,7 +18,7 @@
   font-size: var(--fs-md);
   cursor: pointer;
 }
-.nav-cart-btn:hover { border-color: var(--color-secondary); }
+.nav-cart-btn:hover { border-color: var(--color-primary); }
 .cart-count {
   position: absolute;
   top: -4px; right: -4px;
