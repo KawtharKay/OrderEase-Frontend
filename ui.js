@@ -40,6 +40,40 @@ function formatDate(dateString) {
     " · " + d.toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit" });
 }
 
+const TIMELINE_STATUS_LABELS = {
+  Received: "Received", Processing: "Processing", Dispatched: "Dispatched",
+  ReadyForPickup: "Ready for Pickup", Delivered: "Delivered", Cancelled: "Cancelled", Returned: "Returned"
+};
+
+function renderStatusTimeline(orderId, statusHistory) {
+  if (!statusHistory || statusHistory.length === 0) return "";
+
+  const entries = statusHistory.map(h => `
+    <div class="timeline-entry">
+      <div class="timeline-dot"></div>
+      <div class="timeline-content">
+        <div class="timeline-status">${TIMELINE_STATUS_LABELS[h.newStatus] || h.newStatus}</div>
+        <div class="timeline-time">${formatDate(h.changedAt)}</div>
+      </div>
+    </div>
+  `).join("");
+
+  return `
+    <div class="order-timeline-block">
+      <button type="button" class="timeline-toggle-btn" id="timeline-toggle-${orderId}">
+        <span>Order timeline</span>
+        <span class="timeline-caret" id="timeline-caret-${orderId}">▾</span>
+      </button>
+      <div class="order-timeline" id="timeline-${orderId}">${entries}</div>
+    </div>
+  `;
+}
+
+function toggleTimeline(orderId) {
+  document.getElementById(`timeline-${orderId}`).classList.toggle("open");
+  document.getElementById(`timeline-caret-${orderId}`).classList.toggle("open");
+}
+
 function setButtonLoading(button, isLoading, loadingText = "Please wait...") {
   if (isLoading) {
     button.dataset.originalText = button.textContent;

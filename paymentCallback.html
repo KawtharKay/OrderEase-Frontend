@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Order confirmed · OrderEase</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="components.css">
+<link rel="stylesheet" href="dashboard.css">
+</head>
+<body class="dash-body">
+
+  <nav class="navbar">
+    <div class="container">
+      <div class="brand"><span class="brand-order">Order</span><span class="brand-ease">Ease</span></div>
+      <div class="nav-links">
+        <a href="catalogue.html">Catalogue</a>
+        <a href="myOrders.html">My Orders</a>
+        <a href="wallet.html">Wallet</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="checkout-empty" style="max-width: 480px; margin: var(--sp-10) auto; text-align:center;">
+      <div id="statusIcon" style="font-size: 3rem; margin-bottom: var(--sp-4);">⏳</div>
+      <h2 id="statusTitle">Confirming your payment...</h2>
+      <p id="statusMessage" style="color: var(--color-ink-soft);">Please wait a moment while we verify this with Paystack.</p>
+      <a href="myOrders.html" class="btn btn-primary" style="margin-top: var(--sp-5); display:none;" id="viewOrdersBtn">View my orders</a>
+    </div>
+  </div>
+
+  <div class="toast-stack"></div>
+
+  <script src="api.js"></script>
+  <script src="ui.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      const params = new URLSearchParams(window.location.search);
+      const reference = params.get("reference") || params.get("trxref");
+
+      const icon = document.getElementById("statusIcon");
+      const title = document.getElementById("statusTitle");
+      const message = document.getElementById("statusMessage");
+      const viewBtn = document.getElementById("viewOrdersBtn");
+
+      if (!reference) {
+        icon.textContent = "❓";
+        title.textContent = "No payment reference found";
+        message.textContent = "If you completed a payment, check My Orders or your Wallet for its status.";
+        viewBtn.style.display = "inline-flex";
+        return;
+      }
+
+      // Order payments use "ORDP-" references, wallet top-ups use "WLT-" -
+      // both flows share this one callback page since Paystack only supports
+      // a single dashboard-configured redirect URL.
+      const isWalletTopUp = reference.startsWith("WLT-");
+
+      try {
+        if (isWalletTopUp) {
+          await Api.post(`/Wallet/verify-wallet/${reference}`, null);
+          sessionStorage.removeItem("oe_cart");
+          icon.textContent = "✅";
+          title.textContent = "Wallet funded!";
+          message.textContent = "Your wallet balance has been updated.";
+          viewBtn.textContent = "Go to wallet";
+          viewBtn.href = "wallet.html";
+        } else {
+          await Api.post(`/Payments/verify/${reference}`, null);
+          sessionStorage.removeItem("oe_cart");
+          icon.textContent = "✅";
+          title.textContent = "Payment confirmed!";
+          message.textContent = "Your order has been paid for and is being processed.";
+          viewBtn.textContent = "View my orders";
+          viewBtn.href = "myOrders.html";
+        }
+      } catch (err) {
+        icon.textContent = "⚠️";
+        title.textContent = "We couldn't confirm this payment";
+        message.textContent = err.message || "Please check your account, or contact support if the amount was deducted.";
+        viewBtn.textContent = isWalletTopUp ? "Go to wallet" : "View my orders";
+        viewBtn.href = isWalletTopUp ? "wallet.html" : "myOrders.html";
+      } finally {
+        viewBtn.style.display = "inline-flex";
+      }
+    });
+  </script>
+</body>
+</html>

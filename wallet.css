@@ -1,0 +1,58 @@
+/* ==========================================================================
+   Wallet — balance, top-up, transaction history
+   ========================================================================== */
+
+.balance-card {
+  background: linear-gradient(135deg, var(--color-secondary) 0%, var(--color-secondary-dark) 100%);
+  color: var(--color-white);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-6);
+  margin-bottom: var(--sp-6);
+  position: relative;
+  overflow: hidden;
+}
+.balance-label {
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #CFE0F0;
+  margin-bottom: var(--sp-2);
+}
+.balance-amount {
+  font-family: var(--font-mono);
+  font-size: var(--fs-3xl);
+  font-weight: 700;
+  margin-bottom: var(--sp-5);
+}
+.balance-actions { display: flex; gap: var(--sp-3); flex-wrap: wrap; }
+
+.fund-form {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.fund-form input {
+  width: 160px;
+  height: 44px;
+  padding: 0 var(--sp-4);
+  border-radius: var(--radius-pill);
+  border: none;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+}
+
+.transaction-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid var(--color-border);
+  gap: var(--sp-3);
+}
+.transaction-row:last-child { border-bottom: none; }
+.transaction-desc { font-weight: 600; font-size: var(--fs-sm); }
+.transaction-date { font-size: var(--fs-xs); color: var(--color-ink-soft); }
+.transaction-amount { font-family: var(--font-mono); font-weight: 700; white-space: nowrap; }
+.transaction-amount.credit { color: var(--color-success); }
+.transaction-amount.debit { color: var(--color-danger); }

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wallet · OrderEase</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Nunito:wght@400;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="components.css">
+<link rel="stylesheet" href="notification.css">
+<link rel="stylesheet" href="dashboard.css">
+<link rel="stylesheet" href="wallet.css">
+</head>
+<body class="dash-body">
+
+  <nav class="navbar">
+    <div class="container">
+      <div class="brand"><span class="brand-order">Order</span><span class="brand-ease">Ease</span></div>
+      <div class="nav-links">
+        <a href="catalogue.html">Catalogue</a>
+        <a href="myOrders.html">My Orders</a>
+        <a href="returnRequest.html">Returns</a>
+        <a href="wallet.html" class="active">Wallet</a>
+        <a href="#" id="logoutLink">Log out</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="dash-header">
+      <h1>Wallet</h1>
+      <p>Top up your balance to speed up checkout, and track refunds from returns.</p>
+    </div>
+
+    <div class="balance-card">
+      <div class="balance-label">Available balance</div>
+      <div class="balance-amount" id="balanceAmount">₦0.00</div>
+      <form class="fund-form" id="fundForm">
+        <input type="number" id="fundAmount" placeholder="Amount" min="100" step="100" required>
+        <button type="submit" class="btn btn-primary" id="fundBtn">Top up via Paystack</button>
+      </form>
+    </div>
+
+    <div class="checkout-section" style="background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--sp-5);">
+      <h2 style="font-size: var(--fs-md); margin-bottom: var(--sp-4);">Transaction history</h2>
+      <div id="transactionList"><!-- transactions render here --></div>
+      <div id="emptyTransactions" class="empty-state" style="display:none; padding: var(--sp-6) 0;">
+        <h3>No transactions yet</h3>
+        <p>Top up your wallet or place an order to see activity here.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-stack"></div>
+
+  <script src="api.js"></script>
+  <script src="ui.js"></script>
+  <script src="wallet.js"></script>
+  <script src="notification.js"></script>
+</body>
+</html>

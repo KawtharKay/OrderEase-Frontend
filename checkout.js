@@ -1,0 +1,316 @@
+/* ==========================================================================
+   OrderEase Checkout
+   ========================================================================== */
+
+let checkoutCart = {};
+let deliveryLocations = [];
+
+document.addEventListener("DOMContentLoaded", async () => {
+  if (!TokenStore.get() || !TokenStore.getUser()) {
+    window.location.href = "login.html?redirect=checkout";
+    return;
+  }
+  const user = requireAuth("app_customer");
+  if (!user) return;
+
+  loadCart();
+  initDeliveryOptions();
+  await Promise.all([loadWalletBalance(), loadDeliveryLocations()]);
+
+  document.getElementById("placeOrderBtn").addEventListener("click", placeOrder);
+});
+
+async function loadDeliveryLocations() {
+  const select = document.getElementById("deliveryLocation");
+  try {
+    const result = await Api.get("/DeliveryLocation");
+    deliveryLocations = result?.data || [];
+
+    if (deliveryLocations.length === 0) {
+      select.innerHTML = `<option value="">My location isn't here</option>`;
+    } else {
+      select.innerHTML = deliveryLocations
+        .map(loc => `<option value="${loc.id}">${loc.name} - ${formatNaira(loc.fee)}</option>`)
+        .join("") + `<option value="">My location isn't here</option>`;
+    }
+    updateLocationHint();
+  } catch {
+    deliveryLocations = [];
+    select.innerHTML = `<option value="">My location isn't here</option>`;
+    updateLocationHint();
+  }
+}
+
+function updateLocationHint() {
+  const select = document.getElementById("deliveryLocation");
+  const hint = document.getElementById("deliveryLocationHint");
+
+  if (!select.value) {
+    hint.textContent = deliveryLocations.length === 0
+      ? "No preconfigured locations yet, the supplier will set your delivery fee after you place this order."
+      : "The supplier will set your delivery fee manually after you place this order, since your area isn't on the list.";
+  } else {
+    hint.textContent = "This fee applies automatically, no need to wait for the supplier.";
+  }
+}
+
+function loadCart() {
+  try {
+    checkoutCart = JSON.parse(sessionStorage.getItem("oe_cart") || "{}");
+  } catch {
+    checkoutCart = {};
+  }
+
+  const entries = Object.values(checkoutCart);
+
+  if (entries.length === 0) {
+    document.getElementById("checkoutContent").style.display = "none";
+    document.getElementById("checkoutEmpty").style.display = "block";
+    return;
+  }
+
+  renderOrderLines(entries);
+  updateSummary(entries);
+}
+
+function renderOrderLines(entries) {
+  const wrap = document.getElementById("orderLines");
+  wrap.innerHTML = entries.map(({ item, quantity }) => {
+    const initial = (item.title || "?").charAt(0).toUpperCase();
+    return `
+      <div class="checkout-line">
+        <div class="checkout-line-thumb">${item.imageUrl ? `<img src="${item.imageUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:var(--radius-sm);">` : initial}</div>
+        <div class="checkout-line-info">
+          <div class="name">${item.title}</div>
+          <div class="qty">Qty ${quantity} × ${formatNaira(item.price)}</div>
+        </div>
+        <div class="checkout-line-price">${formatNaira(item.price * quantity)}</div>
+      </div>
+    `;
+  }).join("");
+}
+
+function getSubtotal(entries) {
+  return entries.reduce((sum, { item, quantity }) => sum + item.price * quantity, 0);
+}
+
+let walletBalance = 0;
+
+async function loadWalletBalance() {
+  try {
+    const result = await Api.get("/Wallet/balance");
+    walletBalance = result?.data?.balance || 0;
+  } catch {
+    walletBalance = 0;
+  }
+  updateSummary(Object.values(checkoutCart));
+}
+
+function updateSummary(entries) {
+  const subtotal = getSubtotal(entries);
+
+  document.getElementById("summarySubtotal").textContent = formatNaira(subtotal);
+  document.getElementById("summaryWallet").textContent = formatNaira(walletBalance);
+  document.getElementById("summaryTotal").textContent = formatNaira(subtotal);
+
+  const note = document.getElementById("walletNote");
+  if (walletBalance > 0) {
+    note.style.display = "block";
+    note.textContent = `You have ${formatNaira(walletBalance)} in your wallet. Nothing is charged automatically; after placing your order you'll choose how to pay: wallet, Paystack, or later.`;
+  } else {
+    note.style.display = "none";
+  }
+}
+
+function initDeliveryOptions() {
+  const options = document.querySelectorAll(".delivery-option");
+  options.forEach(opt => {
+    opt.addEventListener("click", () => {
+      options.forEach(o => o.classList.remove("selected"));
+      opt.classList.add("selected");
+      opt.querySelector("input").checked = true;
+      updateDeliveryAddressField();
+    });
+  });
+  options[0].classList.add("selected");
+  updateDeliveryAddressField();
+
+  document.getElementById("deliveryLocation").addEventListener("change", updateLocationHint);
+}
+
+function updateDeliveryAddressField() {
+  const method = Number(document.querySelector('input[name="deliveryMethod"]:checked').value);
+  const section = document.getElementById("deliveryAddressSection");
+  const locationSection = document.getElementById("deliveryLocationSection");
+
+  const isDispatchRider = method === 1;
+  locationSection.style.display = isDispatchRider ? "block" : "none";
+  section.style.display = isDispatchRider ? "block" : "none";
+}
+
+async function placeOrder() {
+  const btn = document.getElementById("placeOrderBtn");
+  const entries = Object.values(checkoutCart);
+  if (entries.length === 0) return;
+
+  const deliveryMethod = Number(document.querySelector('input[name="deliveryMethod"]:checked').value);
+  const deliveryAddress = document.getElementById("deliveryAddress").value.trim();
+  const deliveryLocationId = deliveryMethod === 1 ? (document.getElementById("deliveryLocation").value || null) : null;
+  const addressError = document.getElementById("deliveryAddressError");
+
+  if (deliveryMethod === 1 && !deliveryAddress) {
+    addressError.style.display = "block";
+    document.getElementById("deliveryAddress").focus();
+    return;
+  }
+  addressError.style.display = "none";
+
+  setButtonLoading(btn, true, "Placing order...");
+
+  try {
+    const orderResult = await Api.post("/Orders", {
+      items: entries.map(({ item, quantity }) => ({ itemId: item.id, quantity }))
+    });
+    let order = orderResult.data;
+
+    let deliveryCreated = true;
+    try {
+      await Api.post("/Delivery/create-delivery", {
+        orderId: order.id,
+        deliveryMethod,
+        deliveryAddress: deliveryMethod === 1 ? deliveryAddress : null,
+        deliveryLocationId
+      });
+
+      const freshOrder = await Api.get(`/Orders/${order.id}`);
+      order = freshOrder.data;
+      order.amountOwed = order.outstandingBalance;
+    } catch (deliveryErr) {
+      deliveryCreated = false;
+      showToast(`Order placed, but delivery details couldn't be saved: ${deliveryErr.message}`, "error");
+    }
+
+    sessionStorage.removeItem("oe_cart");
+
+    if (!deliveryCreated) {
+      window.location.href = "myOrders.html";
+      return;
+    }
+
+    if (order.deliveryFeeConfirmed) {
+      if (order.outstandingBalance > 0 || order.amountOwed > 0) {
+        showPayChoiceModal(order);
+      } else {
+        showToast("Order placed successfully!", "success");
+        setTimeout(() => { window.location.href = "myOrders.html"; }, 1200);
+      }
+    } else {
+      showToast("Order placed! Delivery fee for this location is currently unavailable, the supplier will contact you to arrange delivery and confirm the fee.", "success");
+      setTimeout(() => { window.location.href = "myOrders.html"; }, 2500);
+    }
+  } catch (err) {
+    showToast(err.message, "error");
+    setButtonLoading(btn, false);
+  }
+}
+
+function showPayChoiceModal(order) {
+  const overlay = document.createElement("div");
+  overlay.style.cssText = `
+    position: fixed; inset: 0; background: rgba(43,36,32,0.45);
+    display: flex; align-items: center; justify-content: center; z-index: 100;
+  `;
+
+  const walletButton = walletBalance > 0
+    ? `<button class="btn btn-outline btn-block" id="payChoiceWalletBtn" style="margin-bottom: var(--sp-3);">Pay with wallet (${formatNaira(walletBalance)} available)</button>`
+    : "";
+
+  overlay.innerHTML = `
+    <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: var(--sp-6); max-width: 420px; width: 90%; text-align: center;">
+      <h2 style="margin-bottom: var(--sp-2);">Order placed!</h2>
+      <p style="color: var(--color-ink-soft); margin-bottom: var(--sp-5);">
+        ₦${order.amountOwed.toFixed(2)} is due on this order. How would you like to pay?
+      </p>
+      ${walletButton}
+      <button class="btn btn-primary btn-block" id="payChoiceNowBtn" style="margin-bottom: var(--sp-3);">Pay with Paystack</button>
+      <button class="btn btn-outline btn-block" id="payChoiceLaterBtn">Pay later</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  if (walletBalance > 0) {
+    document.getElementById("payChoiceWalletBtn").addEventListener("click", async () => {
+      const btn = document.getElementById("payChoiceWalletBtn");
+      setButtonLoading(btn, true, "Applying wallet...");
+      try {
+        const result = await Api.post(`/Orders/${order.id}/pay-with-wallet`, {});
+        overlay.remove();
+        showToast(result.message, "success");
+        setTimeout(() => { window.location.href = "myOrders.html"; }, 1200);
+      } catch (err) {
+        showToast(err.message, "error");
+        setButtonLoading(btn, false);
+      }
+    });
+  }
+
+  document.getElementById("payChoiceNowBtn").addEventListener("click", () => {
+    overlay.remove();
+    showPayAmountModal(order.id, order.amountOwed);
+  });
+
+  document.getElementById("payChoiceLaterBtn").addEventListener("click", () => {
+    window.location.href = "myOrders.html";
+  });
+}
+
+function showPayAmountModal(orderId, maxAmount) {
+  const overlay = document.createElement("div");
+  overlay.style.cssText = `
+    position: fixed; inset: 0; background: rgba(43,36,32,0.45);
+    display: flex; align-items: center; justify-content: center; z-index: 100;
+  `;
+  overlay.innerHTML = `
+    <div style="background: var(--color-white); border-radius: var(--radius-lg); padding: var(--sp-6); max-width: 380px; width: 90%;">
+      <h2 style="margin-bottom: var(--sp-2); text-align:center;">Pay via Paystack</h2>
+      <p style="color: var(--color-ink-soft); margin-bottom: var(--sp-4); text-align:center;">
+        Enter how much you'd like to pay now (up to ${formatNaira(maxAmount)}).
+      </p>
+      <input type="number" id="payAmountInput"
+        style="width:100%; height:46px; padding:0 var(--sp-4); border:1.5px solid var(--color-border); border-radius:var(--radius-sm);
+               font-family: var(--font-mono); font-size: var(--fs-md); text-align:center; margin-bottom: var(--sp-2);"
+        value="${maxAmount.toFixed(2)}" min="1" max="${maxAmount}" step="0.01">
+      <div id="payAmountError" style="color: var(--color-danger); font-size: var(--fs-xs); text-align:center; min-height: 16px; margin-bottom: var(--sp-4);"></div>
+      <button class="btn btn-primary btn-block" id="payAmountConfirmBtn" style="margin-bottom: var(--sp-3);">Continue to Paystack</button>
+      <button class="btn btn-outline btn-block" id="payAmountCancelBtn">Pay later instead</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  document.getElementById("payAmountCancelBtn").addEventListener("click", () => {
+    window.location.href = "myOrders.html";
+  });
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) window.location.href = "myOrders.html"; });
+
+  document.getElementById("payAmountConfirmBtn").addEventListener("click", async () => {
+    const input = document.getElementById("payAmountInput");
+    const errorEl = document.getElementById("payAmountError");
+    const amount = Number(input.value);
+
+    if (!amount || amount <= 0 || amount > maxAmount) {
+      errorEl.textContent = `Enter an amount between ₦0 and ${formatNaira(maxAmount)}`;
+      return;
+    }
+
+    const btn = document.getElementById("payAmountConfirmBtn");
+    setButtonLoading(btn, true, "Redirecting...");
+
+    try {
+      const result = await Api.post("/Payments/initiate", { orderId, amount });
+      window.location.href = result.data.authorizationUrl;
+    } catch (err) {
+      errorEl.textContent = err.message;
+      setButtonLoading(btn, false);
+    }
+  });
+}
